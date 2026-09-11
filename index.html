@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<title>IATI AMC — explorateur local (v0.1.3)</title>
+<title>IATI AMCx — explorateur local (v0.1.4)</title>
 <style>
 :root {
   --bg: #0b1014;
@@ -81,7 +81,22 @@ header h1 .ver { color: var(--muted); font-size: 10px; font-weight: 500; letter-
 }
 .modal h3 { margin: 0 0 8px; font-size: 15px; }
 .modal p { margin: 0 0 14px; color: var(--muted); }
-.modal .actions { display: flex; flex-direction: column; gap: 6px; }
+.modal .box.wide { width: min(560px, 96vw); }
+.ds-list {
+  max-height: min(42vh, 360px); overflow: auto; margin: 10px 0 12px;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--bg);
+}
+.ds-item {
+  display: grid; grid-template-columns: 18px 1fr auto; gap: 8px;
+  align-items: start; padding: 10px 12px; cursor: pointer;
+  border-bottom: 1px solid var(--line);
+}
+.ds-item:last-child { border-bottom: 0; }
+.ds-item:hover { background: #1a2832; }
+.ds-item.on { background: #2a2414; }
+.ds-item b { display: block; font-size: 12px; word-break: break-all; }
+.ds-item small { color: var(--muted); font-size: 11px; }
+#gitLoadBtn { font-size: 16px; padding: 14px 12px; letter-spacing: .08em; }
 .delta { font-size: 12px; }
 .delta .was { color: var(--danger); text-decoration: line-through; margin-right: 8px; }
 .delta .now { color: var(--ok); }
@@ -267,12 +282,12 @@ body.simple #cols { display: none; }
 body.simple #colsSimple {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 76px 118px;
-  height: 40px;
-  font-size: 9px;
+  height: 36px;
+  font-size: 10px;
   letter-spacing: .04em;
   column-gap: 0;
 }
-body.simple #colsSimple span { white-space: normal; line-height: 1.15; align-items: center; padding: 0 6px; }
+body.simple #colsSimple span { white-space: nowrap; line-height: 1.15; align-items: center; padding: 0 6px; }
 body.simple #colsSimple span[data-k="id"] { justify-content: flex-start; text-align: left; }
 body.simple #colsSimple span[data-k="start"] { justify-content: flex-end; text-align: right; padding-right: 4px; }
 body.simple #colsSimple span[data-k="commit"] { justify-content: flex-end; text-align: right; padding-left: 0; padding-right: 8px; }
@@ -362,7 +377,7 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
 <div id="app">
   <header>
     <button class="btn iconbtn" id="simpleBtn" title="Mode simplifié (téléphone)">S</button>
-    <h1>IATI <span>AMC</span> local <em class="ver">(v0.1.3)</em></h1>
+    <h1>IATI <span>AMCx</span> local <em class="ver">(v0.1.4)</em></h1>
     <div class="searchwrap" id="searchwrap">
       <input class="search" id="q" placeholder="Recherche : texte, id:P009528, pays:PS, secteur:72010, partenaire:WFP, statut:3, hum:1" spellcheck="false">
       <button type="button" id="clearQ" title="Effacer la recherche">×</button>
@@ -389,14 +404,15 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
         <div class="drop" id="drop">
           Dépose les XML IITA ici
           <div class="stack">
-            <button class="btn wide" id="dlOfficialBtn" title="Ouvre la page officielle AMC / IITA">Télécharger les données</button>
-            <button class="btn primary wide" id="pickBtn">Choisir des fichiers</button>
+            <button class="btn primary wide lg" id="gitDataBtn" title="Charge un XML consolidé depuis GitHub AMCx">Charger Données Consolidées</button>
+            <button class="btn wide" id="dlOfficialBtn" title="Ouvre la page officielle AMC / IITA">Télécharger les données officielles</button>
+            <button class="btn wide" id="pickBtn">Choisir des fichiers</button>
             <button class="btn wide" id="checkBtn">Vérifier en ligne</button>
           </div>
           <input type="file" id="file" accept=".xml,text/xml,application/xml" multiple hidden>
         </div>
         <div class="files" id="fileList"></div>
-        <p class="hint">Fichiers officiels dfatd-maecd_activit_status_*.xml. Tout reste dans le navigateur.</p>
+        <p class="hint">Jeux consolidés GitHub AMCx / datasets, ou XML officiels dfatd-maecd_activit_status_*.xml. Tout reste dans le navigateur après le chargement.</p>
         </div>
         <div id="filterBlock">
         <div class="facet">
@@ -464,7 +480,7 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
       </div>
       <div class="cols simple-cols" id="colsSimple">
         <span data-k="id">Identifiant</span>
-        <span data-k="start">DATE DE DÉBUT</span>
+        <span data-k="start">Début</span>
         <span data-k="commit">DÉPENSES ENGAGÉES</span>
       </div>
       <div id="spacer"><div id="rows"></div></div>
@@ -672,7 +688,7 @@ self.onmessage = (e) => {
 </script>
 
 <script>
-const VERSION = "0.1.3";
+const VERSION = "0.1.4";
 const COUNTRIES = {AF:"Afghanistan",AL:"Albanie",DZ:"Algérie",AO:"Angola",AR:"Argentine",AM:"Arménie",AZ:"Azerbaïdjan",BD:"Bangladesh",BY:"Bélarus",BJ:"Bénin",BT:"Bhoutan",BO:"Bolivie",BA:"Bosnie",BW:"Botswana",BR:"Brésil",BF:"Burkina Faso",BI:"Burundi",KH:"Cambodge",CM:"Cameroun",CV:"Cabo Verde",CF:"RCA",TD:"Tchad",CN:"Chine",CO:"Colombie",KM:"Comores",CD:"RDC",CG:"Congo",CR:"Costa Rica",CI:"Côte d'Ivoire",CU:"Cuba",DJ:"Djibouti",DO:"Rép. dominicaine",EC:"Équateur",EG:"Égypte",SV:"Salvador",ER:"Érythrée",SZ:"Eswatini",ET:"Éthiopie",FJ:"Fidji",GA:"Gabon",GM:"Gambie",GE:"Géorgie",GH:"Ghana",GT:"Guatemala",GN:"Guinée",GW:"Guinée-Bissau",GY:"Guyana",HT:"Haïti",HN:"Honduras",IN:"Inde",ID:"Indonésie",IQ:"Irak",IR:"Iran",JM:"Jamaïque",JO:"Jordanie",KZ:"Kazakhstan",KE:"Kenya",XK:"Kosovo",KG:"Kirghizistan",LA:"Laos",LB:"Liban",LS:"Lesotho",LR:"Liberia",LY:"Libye",MG:"Madagascar",MW:"Malawi",MY:"Malaisie",ML:"Mali",MR:"Mauritanie",MU:"Maurice",MX:"Mexique",MD:"Moldavie",MN:"Mongolie",ME:"Monténégro",MA:"Maroc",MZ:"Mozambique",MM:"Myanmar",NA:"Namibie",NP:"Népal",NI:"Nicaragua",NE:"Niger",NG:"Nigeria",MK:"Macédoine du N.",PK:"Pakistan",PS:"Palestine",PA:"Panama",PG:"Papouasie",PY:"Paraguay",PE:"Pérou",PH:"Philippines",RW:"Rwanda",WS:"Samoa",SN:"Sénégal",RS:"Serbie",SL:"Sierra Leone",SB:"Salomon",SO:"Somalie",ZA:"Afrique du Sud",SS:"Soudan du Sud",LK:"Sri Lanka",SD:"Soudan",SR:"Suriname",SY:"Syrie",TJ:"Tadjikistan",TZ:"Tanzanie",TH:"Thaïlande",TL:"Timor-Leste",TG:"Togo",TN:"Tunisie",TR:"Türkiye",TM:"Turkménistan",UG:"Ouganda",UA:"Ukraine",UZ:"Ouzbékistan",VU:"Vanuatu",VE:"Venezuela",VN:"Viêt Nam",YE:"Yémen",ZM:"Zambie",ZW:"Zimbabwe"};
 const SECTORS = {
 "11110":"Politique éducative","11120":"Installations éducatives","11130":"Formation enseignants","11182":"Recherche éducation",
@@ -729,7 +745,9 @@ const state = {
   diffShow: {added:true, removed:true, modified:true},
   diff: {added:[], removed:[], modified:[], kind:new Map()},
   simple: false,
-  ficheFull: false
+  ficheFull: false,
+  packReady: false,
+  gitAutoTried: false
 };
 
 let worker;
@@ -913,6 +931,13 @@ function syncFavUi() {
 }
 
 const OFFICIAL_PAGE = "https://www.international.gc.ca/world-monde/issues_development-enjeux_developpement/priorities-priorites/initiative.aspx?lang=fra";
+const GIT_API = "https://api.github.com/repos/GlefTD/AMCx/contents/datasets";
+const GIT_RAW = "https://raw.githubusercontent.com/GlefTD/AMCx/main/datasets/";
+const GIT_FALLBACK = [{
+  name: "iati-amc-ALLINONEDATASET_20260911.xml",
+  size: 60195436,
+  url: GIT_RAW + "iati-amc-ALLINONEDATASET_20260911.xml"
+}];
 const OFFICIAL = [
   {key:"status_2", url:"https://w05.international.gc.ca/projectbrowser-banqueprojets/iita-iati/dfatd-maecd_activit_status_2.xml"},
   {key:"status_3", url:"https://w05.international.gc.ca/projectbrowser-banqueprojets/iita-iati/dfatd-maecd_activit_status_3.xml"},
@@ -924,6 +949,138 @@ const OFFICIAL = [
 function officialFor(name) {
   const n = (name||"").toLowerCase();
   return OFFICIAL.find(o => n.indexOf(o.key) >= 0) || null;
+}
+function fmtBytes(n) {
+  const x = Number(n) || 0;
+  if (x >= 1e9) return (x/1e9).toFixed(2)+" Go";
+  if (x >= 1e6) return (x/1e6).toFixed(1)+" Mo";
+  if (x >= 1e3) return Math.round(x/1e3)+" Ko";
+  return x+" o";
+}
+function datasetStamp(name) {
+  const m = /(\d{8})/.exec(name || "");
+  if (!m) return "";
+  return m[1].slice(0,4)+"-"+m[1].slice(4,6)+"-"+m[1].slice(6,8);
+}
+function sortDatasets(a, b) {
+  const da = datasetStamp(a.name), db = datasetStamp(b.name);
+  if (da !== db) return db.localeCompare(da);
+  return (b.size||0) - (a.size||0);
+}
+async function listGitDatasets() {
+  try {
+    const res = await fetch(GIT_API, {headers:{Accept:"application/vnd.github+json"}, cache:"no-store"});
+    if (!res.ok) throw new Error("GitHub "+res.status);
+    const files = await res.json();
+    const list = (Array.isArray(files) ? files : [])
+      .filter(f => f && f.type === "file" && /\.xml$/i.test(f.name||""))
+      .map(f => ({name:f.name, size:f.size||0, url:f.download_url || (GIT_RAW+f.name)}))
+      .sort(sortDatasets);
+    return list.length ? list : GIT_FALLBACK.slice();
+  } catch (e) {
+    return GIT_FALLBACK.slice();
+  }
+}
+function latestDataset(list) {
+  return (list && list[0]) || GIT_FALLBACK[0];
+}
+
+let gitBusy = false;
+let gitPick = null;
+function closeGitPicker() {
+  const box = $("modal");
+  if (!box) return;
+  box.classList.add("hidden");
+  box.innerHTML = "";
+  box.onclick = null;
+}
+function renderGitList(list, selected) {
+  const el = $("dsList");
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div class="hint" style="padding:10px">Aucun XML dans datasets/.</div>';
+    return;
+  }
+  el.innerHTML = list.map((d,i) => {
+    const on = selected && selected.name === d.name ? " on" : "";
+    const when = datasetStamp(d.name);
+    return '<label class="ds-item'+on+'"><input type="radio" name="dsPick" value="'+i+'" '+(on?"checked":"")+'>'
+      + "<div><b>"+esc(d.name)+"</b><small>"+(when?"publié "+when+" · ":"")+fmtBytes(d.size)+"</small></div>"
+      + '<span class="hint">XML</span></label>';
+  }).join("");
+  el.querySelectorAll(".ds-item").forEach((row, i) => {
+    row.onclick = () => {
+      gitPick = list[i];
+      renderGitList(list, gitPick);
+      const btn = $("gitLoadBtn");
+      if (btn) btn.disabled = !gitPick;
+    };
+  });
+}
+async function openGitPicker() {
+  const box = $("modal");
+  box.classList.remove("hidden");
+  box.innerHTML = '<div class="box wide"><h3>Données consolidées</h3>'
+    + '<p>Jeux XML disponibles sur <a class="amc-link" href="https://github.com/GlefTD/AMCx/tree/main/datasets" target="_blank" rel="noreferrer">github.com/GlefTD/AMCx/datasets</a>.</p>'
+    + '<div class="ds-list" id="dsList"><div class="hint" style="padding:10px">Lecture du dépôt…</div></div>'
+    + '<button class="btn primary wide lg" id="gitLoadBtn" disabled>LOAD</button>'
+    + '<button class="btn wide" id="gitCancel" style="margin-top:6px">Annuler</button></div>';
+  box.onclick = ev => { if (ev.target === box) closeGitPicker(); };
+  $("gitCancel").onclick = closeGitPicker;
+  $("gitLoadBtn").onclick = () => { if (gitPick) { closeGitPicker(); ingestRemoteXml(gitPick); } };
+  const list = await listGitDatasets();
+  gitPick = latestDataset(list);
+  renderGitList(list, gitPick);
+  const btn = $("gitLoadBtn");
+  if (btn) btn.disabled = !gitPick;
+}
+async function ingestRemoteXml(ds) {
+  if (!ds || gitBusy) return;
+  gitBusy = true;
+  closeSheets();
+  setProg(0.02);
+  setStatus("Téléchargement "+ds.name+"…");
+  try {
+    const res = await fetch(ds.url, {cache:"no-store"});
+    if (!res.ok) throw new Error("HTTP "+res.status);
+    const total = +(res.headers.get("content-length") || ds.size || 0);
+    let buf;
+    if (res.body && typeof res.body.getReader === "function") {
+      const reader = res.body.getReader();
+      const chunks = [];
+      let recvd = 0;
+      while (true) {
+        const step = await reader.read();
+        if (step.done) break;
+        chunks.push(step.value);
+        recvd += step.value.length;
+        if (total) setProg(Math.min(0.88, recvd / total * 0.88));
+        setStatus("Téléchargement "+ds.name+" — "+fmtBytes(recvd)+(total?" / "+fmtBytes(total):""));
+      }
+      const out = new Uint8Array(recvd);
+      let off = 0;
+      for (const c of chunks) { out.set(c, off); off += c.length; }
+      buf = out.buffer;
+    } else {
+      buf = await res.arrayBuffer();
+    }
+    const file = new File([buf], ds.name, {type:"application/xml", lastModified: Date.now()});
+    await ingestFiles([file]);
+  } catch (e) {
+    setProg(0);
+    setStatus("Échec du chargement Git : "+(e && e.message ? e.message : e));
+  } finally {
+    gitBusy = false;
+  }
+}
+async function maybeAutoGit() {
+  if (!state.simple || !state.packReady || state.items.length || gitBusy || state.gitAutoTried) return;
+  state.gitAutoTried = true;
+  setStatus("Mode simple : chargement du dernier jeu consolidé…");
+  const list = await listGitDatasets();
+  const latest = latestDataset(list);
+  if (!latest) { setStatus("Aucun dataset Git trouvé."); return; }
+  await ingestRemoteXml(latest);
 }
 function unloadFile(name) {
   const rec = state.files.find(f => f.name === name);
@@ -1679,6 +1836,7 @@ function setSimple(on, persist) {
     park($("clearBtn"), $("sheetFileBody"));
     document.body.classList.toggle("fiche-open", $("detail").classList.contains("open"));
     document.body.classList.toggle("fiche-full", !!(state.ficheFull && $("detail").classList.contains("open")));
+    maybeAutoGit();
   } else {
     closeSheets();
     restoreHomes();
@@ -1769,6 +1927,7 @@ function wire() {
   $("sheetSearch").addEventListener("click", e => { if (e.target === $("sheetSearch")) closeSheets(); });
   $("sheetFile").addEventListener("click", e => { if (e.target === $("sheetFile")) closeSheets(); });
   $("pickBtn").onclick = () => $("file").click();
+  $("gitDataBtn").onclick = openGitPicker;
   $("dlOfficialBtn").onclick = () => window.open(OFFICIAL_PAGE, "_blank", "noopener");
   $("checkBtn").onclick = verifyOnline;
   $("file").onchange = () => ingestFiles($("file").files);
@@ -1791,6 +1950,7 @@ function wire() {
     if (!state.items.length && !state.snap) return;
     state.items=[]; state.filtered=[]; state.files=[]; state.current=null; state.sel=-1;
     state.favOnly=false; state.diffMode=false;
+    state.gitAutoTried=false;
     $("fileList").innerHTML="";
     $("q").value=""; $("hum").value=""; $("d0").value=""; $("d1").value=""; $("m0").value=""; $("m1").value="";
     $("countryQ").value=""; $("sectorQ").value=""; $("partnerQ").value="";
@@ -1849,6 +2009,7 @@ function wire() {
       $("q").focus(); $("q").select();
     }
     if (e.key==="Escape") {
+      if (!$("modal").classList.contains("hidden")) { closeGitPicker(); return; }
       if ($("sheetSearch").classList.contains("open") || $("sheetFile").classList.contains("open")) {
         closeSheets(); return;
       }
@@ -1879,12 +2040,18 @@ function wire() {
       }).catch(() => {
         apply();
         setStatus("Session locale restaurée — "+pack.items.length+" projets. Ajoute un XML pour mettre à jour.");
-      });
+      }).finally(() => { state.packReady = true; maybeAutoGit(); });
     } else {
       setDbButton(false);
       syncDiffUi();
+      state.packReady = true;
+      maybeAutoGit();
     }
-  }).catch(()=> setDbButton(false));
+  }).catch(()=> {
+    setDbButton(false);
+    state.packReady = true;
+    maybeAutoGit();
+  });
   syncDiffUi();
 }
 wire();
