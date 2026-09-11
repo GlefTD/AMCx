@@ -32,8 +32,9 @@ Ouvrir `index.html` dans un navigateur moderne (Chrome, Safari, Firefox, Edge). 
 Trois chemins :
 
 1. **Données consolidées (recommandé)**  
-   Bouton *Charger Données Consolidées* → choisir un XML dans `datasets/` → **LOAD**.  
-   En mode simple, si aucune donnée n’est en cache, le dernier jeu GitHub est chargé tout seul.
+   Bouton *Charger Données Consolidées* → choisir un XML.  
+   En mode simple, si aucune donnée n’est en cache, le dernier jeu est chargé tout seul.  
+   Ordre des sources : `/data/*.xml.gz` sur Cloudflare (≈12 Mo) → GitHub gzip → GitHub XML 60 Mo.
 
 2. **Fichiers officiels**  
    Télécharger les XML IITA sur le site AMC, puis les glisser dans la zone d’import ou *Choisir des fichiers*.
@@ -44,7 +45,8 @@ Trois chemins :
 Le jeu actuel dans le dépôt :
 
 ```
-datasets/iati-amc-ALLINONEDATASET_20260911.xml
+datasets/iati-amc-ALLINONEDATASET_20260911.xml      (~60 Mo, ignoré par Cloudflare)
+data/iati-amc-ALLINONEDATASET_20260911.xml.gz       (~12 Mo, à servir depuis le worker)
 ```
 
 Convention de nom : `iati-amc-<NOM>_<AAAAMMJJ>.xml`.
@@ -89,15 +91,16 @@ Un seul fichier HTML/CSS/JS.
 - Web Worker : parse streaming des blocs `<iati-activity>`
 - IndexedDB : cache projets + instantané de diff
 - Virtual scroll : seules les lignes visibles sont dessinées
-- GitHub Contents API + raw.githubusercontent.com pour lister et télécharger `datasets/`
+- Chargement distant : `/data/*.xml.gz` (Cloudflare Assets, limite 25 Mio) puis GitHub raw
 
-Pas de cadre, pas de bundler, pas de backend obligatoire. `wrangler.jsonc` sert seulement si on publie le dossier en statique (Pages / Workers).
+Pas de cadre, pas de bundler. `wrangler.jsonc` publie le statique. `.assetsignore` exclut `datasets/*.xml` (60 Mo > limite Assets).
 
 ## Limites
 
-- Premier chargement d’un all-in-one (~60 Mo) : quelques dizaines de secondes selon le réseau
+- Le XML all-in-one fait **60 Mo**. Cloudflare Workers Assets refuse les fichiers > 25 Mio. jsDelivr refuse > 20 Mo. D’où le gzip ~12 Mo dans `data/`.
+- `cache: no-store` (v0.1.5) forçait un re-téléchargement GitHub à chaque visite sans cache HTTP
+- IndexedDB peut refuser le pack sur iPhone (quota) : le prochain chargement retélécharge
 - Le parse regex IITA couvre le jeu AMC ; ce n’est pas un validateur IATI générique
-- La « fraîcheur » en ligne dépend des en-têtes du serveur AMC ou de `generated-datetime`
 
 ## Licence et usage
 

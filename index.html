@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<title>IATI AMCx — explorateur local (v0.1.5)</title>
+<title>IATI AMCx — explorateur local (v0.1.6)</title>
 <style>
 :root {
   --bg: #0b1014;
@@ -386,7 +386,7 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
 <div id="app">
   <header>
     <button class="btn iconbtn" id="simpleBtn" title="Mode simplifié (téléphone)">S</button>
-    <h1>IATI <span>AMCx</span> local <em class="ver">(v0.1.5)</em></h1>
+    <h1>IATI <span>AMCx</span> local <em class="ver">(v0.1.6)</em></h1>
     <div class="searchwrap" id="searchwrap">
       <input class="search" id="q" placeholder="Recherche : texte, id:P009528, pays:PS, secteur:72010, partenaire:WFP, statut:3, hum:1" spellcheck="false">
       <button type="button" id="clearQ" title="Effacer la recherche">×</button>
@@ -413,7 +413,7 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
         <div class="drop" id="drop">
           Dépose les XML IITA ici
           <div class="stack">
-            <button class="btn primary wide lg" id="gitDataBtn" title="Charge un XML consolidé depuis GitHub AMCx">Charger Données Consolidées</button>
+            <button class="btn primary wide lg" id="gitDataBtn" title="Charge un XML consolidé (gzip Cloudflare / GitHub)">Charger Données Consolidées</button>
             <button class="btn wide" id="dlOfficialBtn" title="Ouvre la page officielle AMC / IITA">Télécharger les données officielles</button>
             <button class="btn wide" id="pickBtn">Choisir des fichiers</button>
             <button class="btn wide" id="checkBtn">Vérifier en ligne</button>
@@ -421,7 +421,7 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
           <input type="file" id="file" accept=".xml,text/xml,application/xml" multiple hidden>
         </div>
         <div class="files" id="fileList"></div>
-        <p class="hint">Jeux consolidés GitHub AMCx / datasets, ou XML officiels dfatd-maecd_activit_status_*.xml. Tout reste dans le navigateur après le chargement.</p>
+        <p class="hint">Jeux consolidés : d’abord <code>/data/*.xml.gz</code> sur Cloudflare (≈12 Mo), sinon GitHub raw. Les XML officiels dfatd-maecd_activit_status_*.xml restent valides. Après le 1er chargement, tout reste dans le navigateur.</p>
         </div>
         <div id="filterBlock">
         <div class="facet">
@@ -697,7 +697,7 @@ self.onmessage = (e) => {
 </script>
 
 <script>
-const VERSION = "0.1.5";
+const VERSION = "0.1.6";
 const COUNTRIES = {AF:"Afghanistan",AL:"Albanie",DZ:"Algérie",AO:"Angola",AR:"Argentine",AM:"Arménie",AZ:"Azerbaïdjan",BD:"Bangladesh",BY:"Bélarus",BJ:"Bénin",BT:"Bhoutan",BO:"Bolivie",BA:"Bosnie",BW:"Botswana",BR:"Brésil",BF:"Burkina Faso",BI:"Burundi",KH:"Cambodge",CM:"Cameroun",CV:"Cabo Verde",CF:"RCA",TD:"Tchad",CN:"Chine",CO:"Colombie",KM:"Comores",CD:"RDC",CG:"Congo",CR:"Costa Rica",CI:"Côte d'Ivoire",CU:"Cuba",DJ:"Djibouti",DO:"Rép. dominicaine",EC:"Équateur",EG:"Égypte",SV:"Salvador",ER:"Érythrée",SZ:"Eswatini",ET:"Éthiopie",FJ:"Fidji",GA:"Gabon",GM:"Gambie",GE:"Géorgie",GH:"Ghana",GT:"Guatemala",GN:"Guinée",GW:"Guinée-Bissau",GY:"Guyana",HT:"Haïti",HN:"Honduras",IN:"Inde",ID:"Indonésie",IQ:"Irak",IR:"Iran",JM:"Jamaïque",JO:"Jordanie",KZ:"Kazakhstan",KE:"Kenya",XK:"Kosovo",KG:"Kirghizistan",LA:"Laos",LB:"Liban",LS:"Lesotho",LR:"Liberia",LY:"Libye",MG:"Madagascar",MW:"Malawi",MY:"Malaisie",ML:"Mali",MR:"Mauritanie",MU:"Maurice",MX:"Mexique",MD:"Moldavie",MN:"Mongolie",ME:"Monténégro",MA:"Maroc",MZ:"Mozambique",MM:"Myanmar",NA:"Namibie",NP:"Népal",NI:"Nicaragua",NE:"Niger",NG:"Nigeria",MK:"Macédoine du N.",PK:"Pakistan",PS:"Palestine",PA:"Panama",PG:"Papouasie",PY:"Paraguay",PE:"Pérou",PH:"Philippines",RW:"Rwanda",WS:"Samoa",SN:"Sénégal",RS:"Serbie",SL:"Sierra Leone",SB:"Salomon",SO:"Somalie",ZA:"Afrique du Sud",SS:"Soudan du Sud",LK:"Sri Lanka",SD:"Soudan",SR:"Suriname",SY:"Syrie",TJ:"Tadjikistan",TZ:"Tanzanie",TH:"Thaïlande",TL:"Timor-Leste",TG:"Togo",TN:"Tunisie",TR:"Türkiye",TM:"Turkménistan",UG:"Ouganda",UA:"Ukraine",UZ:"Ouzbékistan",VU:"Vanuatu",VE:"Venezuela",VN:"Viêt Nam",YE:"Yémen",ZM:"Zambie",ZW:"Zimbabwe"};
 const SECTORS = {
 "11110":"Politique éducative","11120":"Installations éducatives","11130":"Formation enseignants","11182":"Recherche éducation",
@@ -942,9 +942,11 @@ function syncFavUi() {
 const OFFICIAL_PAGE = "https://www.international.gc.ca/world-monde/issues_development-enjeux_developpement/priorities-priorites/initiative.aspx?lang=fra";
 const GIT_API = "https://api.github.com/repos/GlefTD/AMCx/contents/datasets";
 const GIT_RAW = "https://raw.githubusercontent.com/GlefTD/AMCx/main/datasets/";
+const DATA_LOCAL = "/data/";
 const GIT_FALLBACK = [{
   name: "iati-amc-ALLINONEDATASET_20260911.xml",
   size: 60195436,
+  gzSize: 12516996,
   url: GIT_RAW + "iati-amc-ALLINONEDATASET_20260911.xml"
 }];
 const OFFICIAL = [
@@ -978,11 +980,11 @@ function sortDatasets(a, b) {
 }
 async function listGitDatasets() {
   try {
-    const res = await fetch(GIT_API, {headers:{Accept:"application/vnd.github+json"}, cache:"no-store"});
+    const res = await fetch(GIT_API, {headers:{Accept:"application/vnd.github+json"}});
     if (!res.ok) throw new Error("GitHub "+res.status);
     const files = await res.json();
     const list = (Array.isArray(files) ? files : [])
-      .filter(f => f && f.type === "file" && /\.xml$/i.test(f.name||""))
+      .filter(f => f && f.type === "file" && /\.xml$/i.test(f.name||"") && !/\.gz$/i.test(f.name||""))
       .map(f => ({name:f.name, size:f.size||0, url:f.download_url || (GIT_RAW+f.name)}))
       .sort(sortDatasets);
     return list.length ? list : GIT_FALLBACK.slice();
@@ -1030,7 +1032,7 @@ async function openGitPicker() {
   const box = $("modal");
   box.classList.remove("hidden");
   box.innerHTML = '<div class="box wide"><h3>Données consolidées</h3>'
-    + '<p>Jeux XML disponibles sur <a class="amc-link" href="https://github.com/GlefTD/AMCx/tree/main/datasets" target="_blank" rel="noreferrer">github.com/GlefTD/AMCx/datasets</a>.</p>'
+    + '<p>Le worker Cloudflare ne peut pas servir le XML 60 Mo. AMCx cherche d’abord <code>/data/*.xml.gz</code> (~12 Mo), puis GitHub.</p>'
     + '<div class="ds-list" id="dsList"><div class="hint" style="padding:10px">Lecture du dépôt…</div></div>'
     + '<button class="btn primary wide lg" id="gitLoadBtn" disabled>LOAD</button>'
     + '<button class="btn wide" id="gitCancel" style="margin-top:6px">Annuler</button></div>';
@@ -1048,39 +1050,107 @@ async function ingestRemoteXml(ds) {
   gitBusy = true;
   closeSheets();
   setProg(0.02);
-  setStatus("Téléchargement "+ds.name+"…");
+  setStatus("Recherche d’une source pour "+ds.name+"…");
   try {
-    const res = await fetch(ds.url, {cache:"no-store"});
-    if (!res.ok) throw new Error("HTTP "+res.status);
-    const total = +(res.headers.get("content-length") || ds.size || 0);
-    let buf;
-    if (res.body && typeof res.body.getReader === "function") {
-      const reader = res.body.getReader();
-      const chunks = [];
-      let recvd = 0;
-      while (true) {
-        const step = await reader.read();
-        if (step.done) break;
-        chunks.push(step.value);
-        recvd += step.value.length;
-        if (total) setProg(Math.min(0.88, recvd / total * 0.88));
-        setStatus("Téléchargement "+ds.name+" — "+fmtBytes(recvd)+(total?" / "+fmtBytes(total):""));
-      }
-      const out = new Uint8Array(recvd);
-      let off = 0;
-      for (const c of chunks) { out.set(c, off); off += c.length; }
-      buf = out.buffer;
-    } else {
-      buf = await res.arrayBuffer();
+    const tried = [];
+    const {res, cand} = await fetchDatasetSource(ds, tried);
+    setStatus("Téléchargement "+ds.name+" via "+cand.label+"…");
+    const cl = +(res.headers.get("content-length") || 0);
+    const rawExpected = ds.size || 0;
+    const looksCompressed = !!(cand.gzip || (cl && rawExpected && cl < rawExpected * 0.6));
+    const total = looksCompressed ? (cl || ds.gzSize || 0) : (rawExpected || cl);
+    const tStart = performance.now();
+    let packed = await readResponseBytes(res, (recvd) => {
+      const elapsed = (performance.now() - tStart) / 1000;
+      const speed = elapsed > 0.2 ? recvd / elapsed : 0;
+      if (total) setProg(Math.min(0.82, recvd / total * 0.82));
+      setStatus("Téléchargement "+cand.label+" — "+fmtBytes(recvd)+(total?" / "+fmtBytes(total):"")+(speed?" · "+fmtBytes(speed)+"/s":""));
+    });
+    if (cand.gzip || isGzipBuffer(packed)) {
+      setStatus("Décompression gzip…");
+      setProg(0.84);
+      packed = await gunzipBuffer(packed);
     }
-    const file = new File([buf], ds.name, {type:"application/xml", lastModified: Date.now()});
-    await ingestFiles([file]);
+    setProg(0.88);
+    setStatus("Analyse "+ds.name+" ("+fmtBytes(packed.byteLength)+")…");
+    await ingestBuffer(ds.name, packed, {size: packed.byteLength, mtime: Date.now(), generated: ""});
   } catch (e) {
     setProg(0);
-    setStatus("Échec du chargement Git : "+(e && e.message ? e.message : e));
+    setStatus("Échec du chargement : "+(e && e.message ? e.message : e));
   } finally {
     gitBusy = false;
   }
+}
+function xmlStem(name) {
+  return String(name || "").replace(/\.gz$/i, "").replace(/\.xml$/i, "") + ".xml";
+}
+function datasetCandidates(ds) {
+  const xml = xmlStem(ds.name);
+  const gz = xml + ".gz";
+  const out = [
+    {url: DATA_LOCAL + gz, gzip: true, label: "Cloudflare gzip"},
+    {url: DATA_LOCAL + xml, gzip: false, label: "Cloudflare XML"},
+    {url: GIT_RAW + gz, gzip: true, label: "GitHub gzip"},
+    {url: ds.url || (GIT_RAW + xml), gzip: false, label: "GitHub XML"}
+  ];
+  const seen = new Set();
+  return out.filter(c => { if (seen.has(c.url)) return false; seen.add(c.url); return true; });
+}
+async function fetchDatasetSource(ds, tried) {
+  let last = null;
+  for (const cand of datasetCandidates(ds)) {
+    tried.push(cand.label);
+    try {
+      const res = await fetch(cand.url);
+      if (res.ok) return {res, cand};
+      last = new Error(cand.label+" HTTP "+res.status);
+    } catch (e) {
+      last = e;
+    }
+  }
+  throw last || new Error("aucune source joignable");
+}
+function isGzipBuffer(buf) {
+  const u = new Uint8Array(buf);
+  return u.length >= 2 && u[0] === 0x1f && u[1] === 0x8b;
+}
+async function gunzipBuffer(buf) {
+  if (typeof DecompressionStream !== "function") {
+    throw new Error("Ce navigateur ne sait pas décompresser gzip. Ajoute le XML brut ou mets à jour le navigateur.");
+  }
+  const ds = new DecompressionStream("gzip");
+  const stream = new Blob([buf]).stream().pipeThrough(ds);
+  return await new Response(stream).arrayBuffer();
+}
+async function readResponseBytes(res, onProg) {
+  if (!res.body || typeof res.body.getReader !== "function") {
+    const buf = await res.arrayBuffer();
+    if (onProg) onProg(buf.byteLength);
+    return buf;
+  }
+  const reader = res.body.getReader();
+  const chunks = [];
+  let recvd = 0;
+  while (true) {
+    const step = await reader.read();
+    if (step.done) break;
+    chunks.push(step.value);
+    recvd += step.value.length;
+    if (onProg) onProg(recvd);
+  }
+  const out = new Uint8Array(recvd);
+  let off = 0;
+  for (const c of chunks) { out.set(c, off); off += c.length; }
+  return out.buffer;
+}
+async function ingestBuffer(name, buf, meta) {
+  const head = new TextDecoder("utf-8").decode(buf.slice(0, 1600));
+  const gd = /generated-datetime="([^"]+)"/.exec(head);
+  pendingMeta.set(name, Object.assign({}, meta || {}, {generated: gd ? gd[1] : (meta && meta.generated) || ""}));
+  parseQueue = 1; parsedFiles = 0; t0 = performance.now();
+  unloadFile(name);
+  renderFileList();
+  worker.postMessage({name, buffer: buf}, [buf]);
 }
 async function maybeAutoGit() {
   if (!state.simple || !state.packReady || state.items.length || gitBusy || state.gitAutoTried) return;
@@ -1157,7 +1227,12 @@ async function afterLoad() {
     state.diffShow = {added:true, removed:true, modified:true};
   }
   apply();
-  try { await savePack(); } catch(e) {}
+  try { await savePack(); }
+  catch (e) {
+    setStatus(state.items.length+" projets uniques · parse "+Math.round(state.parseMs)+" ms · cache IndexedDB refusé ("+(e && e.message ? e.message : "quota")+") — le prochain rechargement redéléchargera.");
+    setDbButton(state.items.length > 0);
+    return;
+  }
   setDbButton(state.items.length > 0);
   const extra = state.snap
     ? " · diff +"+state.diff.added.length+" / −"+state.diff.removed.length+" / ~"+state.diff.modified.length
