@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<title>IATI AMC — explorateur local (v0.1.3)</title>
+<style>
+:root {
+  --bg: #0b1014;
+  --bg2: #121a21;
+  --bg3: #18232c;
+  --line: #2a3a46;
+  --text: #e7eef3;
+  --muted: #8aa0ae;
+  --accent: #e2b657;
+  --accent2: #6fc3b2;
+  --danger: #e07a6a;
+  --ok: #7dce8a;
+  --row: 34px;
+  --aside: 280px;
+  --detail: 400px;
+  --charts: 28vh;
+  --c0: 28px; --c1: 128px; --c2: 280px; --c3: 52px; --c4: 96px; --c5: 96px; --c6: 100px; --c7: minmax(80px, 1fr);
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 13px/1.35 var(--sans); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+#app { display: grid; grid-template-rows: 56px 1fr 28px; height: 100%; }
+header {
+  display: flex; align-items: center; gap: 14px; padding: 0 16px;
+  border-bottom: 1px solid var(--line); background: var(--bg2);
+  flex-wrap: wrap; min-height: 56px;
+}
+header h1 { font-size: 14px; font-weight: 650; letter-spacing: .04em; margin: 0; text-transform: uppercase; white-space: nowrap; }
+header h1 span { color: var(--accent); }
+header h1 .ver { color: var(--muted); font-size: 10px; font-weight: 500; letter-spacing: .02em; text-transform: none; margin-left: 4px; }
+.grow { flex: 1; }
+.searchwrap { position: relative; display: flex; align-items: center; gap: 6px; flex: 0 1 auto; }
+.search {
+  width: min(520px, 38vw); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 4px; padding: 7px 52px 7px 10px; outline: none;
+}
+.search:focus { border-color: var(--accent); }
+#clearQ {
+  position: absolute; right: 42px; width: 22px; height: 22px; border: 0; background: transparent;
+  color: var(--muted); border-radius: 99px; line-height: 1; font-size: 16px; padding: 0;
+}
+#clearQ:hover { color: var(--text); background: var(--bg3); }
+#deepBtn { min-width: 32px; font-weight: 700; letter-spacing: .04em; }
+.btn {
+  background: var(--bg3); border: 1px solid var(--line); border-radius: 4px;
+  padding: 6px 10px; color: var(--text);
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: #3a2f14; border-color: #6d5722; color: var(--accent); }
+.btn.wide { display: block; width: 100%; }
+.btn.lg { padding: 10px 12px; font-size: 14px; font-weight: 600; }
+.btn.danger { background: #3a1614; border-color: #8a3a32; color: #f0b2aa; }
+.btn.danger:hover { border-color: var(--danger); color: #fff; }
+.btn.ghost { opacity: .45; }
+.btn.add.on { background: #163226; border-color: #3e8a5c; color: var(--ok); }
+.btn.del.on { background: #3a1614; border-color: #8a3a32; color: #f0b2aa; }
+.btn.mod.on { background: #3a2f14; border-color: #6d5722; color: var(--accent); }
+.diffbar { display: flex; align-items: center; gap: 6px; }
+.row.add { background: rgba(80, 160, 110, 0.16); }
+.row.del { background: rgba(224, 122, 106, 0.16); }
+.row.mod { background: rgba(226, 182, 87, 0.14); }
+.row.add.on, .row.add:hover { background: rgba(80, 160, 110, 0.28); }
+.row.del.on, .row.del:hover { background: rgba(224, 122, 106, 0.28); }
+.row.mod.on, .row.mod:hover { background: rgba(226, 182, 87, 0.24); }
+.modal {
+  position: fixed; inset: 0; background: rgba(6,10,14,.62); z-index: 40;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal .box {
+  width: min(440px, 96vw); background: var(--bg2); border: 1px solid var(--line);
+  border-radius: 8px; padding: 16px 16px 14px;
+}
+.modal h3 { margin: 0 0 8px; font-size: 15px; }
+.modal p { margin: 0 0 14px; color: var(--muted); }
+.modal .actions { display: flex; flex-direction: column; gap: 6px; }
+.delta { font-size: 12px; }
+.delta .was { color: var(--danger); text-decoration: line-through; margin-right: 8px; }
+.delta .now { color: var(--ok); }
+.kpis { display: flex; gap: 16px; font-variant-numeric: tabular-nums; }
+.kpis b { color: var(--accent); font-weight: 650; }
+main { display: grid; grid-template-columns: var(--aside) 6px 1fr 6px var(--detail); min-height: 0; }
+.split { background: var(--line); cursor: col-resize; position: relative; z-index: 3; }
+.split::after {
+  content: ""; position: absolute; inset: 0 -3px; 
+}
+.split:hover, .split.hot { background: var(--accent); }
+.split.h { cursor: row-resize; height: 6px; }
+.split.h::after { inset: -3px 0; }
+aside.filters { display: flex; flex-direction: column; min-height: 0; background: var(--bg2); border-right: 1px solid var(--line); }
+aside .aside-body { flex: 1; overflow: auto; min-height: 0; }
+aside .aside-foot { padding-top: 12px; margin-top: 8px; border-top: 1px solid var(--line); flex-shrink: 0; }
+.btn.on { background: #163226; border-color: #3e8a5c; color: var(--ok); }
+#diffToggle.on {
+  background: #163226 !important;
+  border-color: #3e8a5c !important;
+  color: var(--ok) !important;
+}
+.detail { display: flex; flex-direction: column; background: var(--bg2); border-left: 1px solid var(--line); min-height: 0; }
+.detail-head { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 10px; }
+.detail-head h2 { margin: 0; }
+.detail-tools { margin-left: auto; display: flex; gap: 6px; }
+#detailBody { overflow: auto; flex: 1; min-height: 0; }
+.pad { padding: 12px 14px; }
+h2 { margin: 0 0 8px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+label.chk { display: flex; gap: 8px; align-items: center; margin: 3px 0; cursor: pointer; }
+.facet { margin-bottom: 14px; }
+.range { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.range input, select.full, input.full {
+  width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 8px;
+}
+.hint { color: var(--muted); font-size: 11px; margin: 6px 0 0; }
+a.amc-link { color: var(--accent); text-decoration: none; }
+a.amc-link:hover { text-decoration: underline; }
+.drop {
+  border: 1px dashed var(--line); border-radius: 6px; padding: 10px; text-align: center;
+  color: var(--muted); margin-bottom: 10px; background: var(--bg);
+}
+.drop.hot { border-color: var(--accent); color: var(--accent); }
+.files { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.files .file { display: grid; grid-template-columns: 10px 1fr auto; gap: 8px; align-items: start; padding: 3px 0; }
+.files .file small { display: block; color: var(--muted); font-size: 10px; }
+.dot { width: 8px; height: 8px; border-radius: 99px; background: #6a7a86; }
+.dot.ok { background: var(--ok); }
+.dot.stale { background: var(--accent); }
+.dot.err { background: var(--danger); }
+.drop .stack { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+#center { display: grid; grid-template-rows: minmax(0, 1fr) 6px var(--charts); min-height: 0; height: 100%; overflow: hidden; }
+.cols, .row {
+  display: grid;
+  grid-template-columns: var(--c0) var(--c1) var(--c2) var(--c3) var(--c4) var(--c5) var(--c6) var(--c7);
+  width: 100%;
+  padding: 0;
+}
+.cols {
+  position: sticky; top: 0; z-index: 4; height: 36px;
+  gap: 0; align-items: stretch; background: #0e161c;
+  border-bottom: 1px solid var(--line); font-size: 11px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .06em;
+}
+.cols span, .row > span { padding: 0 8px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.cols span { cursor: pointer; user-select: none; display: flex; align-items: center; position: relative; }
+.cols span.active { color: var(--accent); }
+.cols .grip {
+  position: absolute; top: 0; bottom: 0; right: -4px; width: 8px;
+  cursor: col-resize; z-index: 5;
+}
+.cols .grip::after {
+  content: ""; position: absolute; top: 6px; bottom: 6px; left: 3px; width: 2px;
+  border-radius: 2px; background: #4a6270;
+}
+.cols .grip:hover::after, .cols .grip.hot::after { background: var(--accent); left: 2px; width: 4px; }
+mark.hit { background: rgba(226,182,87,.28); color: inherit; padding: 0 1px; border-radius: 2px; }
+#scroller { overflow: auto; position: relative; min-height: 0; height: 100%; }
+#spacer { position: relative; display: block; }
+#rows { position: absolute; left: 0; right: 0; top: 0; }
+.row {
+  height: var(--row); align-items: center;
+  border-bottom: 1px solid #1b2831; cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.row:hover { background: #1a2832; }
+.row.on { background: #2a2414; }
+.row.fav { background: rgba(80, 160, 110, 0.22); }
+.row.fav.on { background: rgba(80, 160, 110, 0.34); }
+.row.fav:hover { background: rgba(80, 160, 110, 0.30); }
+.row .id { font-family: var(--mono); font-size: 11px; color: var(--accent2); }
+.row .title { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-right: 8px; }
+.money { text-align: right; font-family: var(--mono); font-size: 12px; }
+.st { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
+.st-2 { color: var(--ok); }
+.st-3 { color: var(--accent); }
+.st-4 { color: var(--muted); }
+.st-1, .st-5, .st-6 { color: var(--danger); }
+#charts { display: grid; grid-template-columns: 1fr 1fr 1fr; border-top: 1px solid var(--line); background: var(--bg2); min-height: 0; }
+.chartbox { padding: 8px 10px; border-right: 1px solid var(--line); overflow: auto; }
+.chartbox:last-child { border-right: 0; }
+.barline { display: grid; grid-template-columns: 1fr 54px 90px; gap: 6px; align-items: center; font-size: 11px; margin: 2px 0; cursor: pointer; }
+.barline i { display: block; height: 7px; background: var(--accent); opacity: .75; }
+.barline em { font-style: normal; color: var(--muted); text-align: right; font-family: var(--mono); }
+.dl { display: grid; grid-template-columns: 118px 1fr; gap: 4px 10px; margin: 8px 0 14px; }
+.dl dt { color: var(--muted); }
+.dl dd { margin: 0; }
+.prose { white-space: pre-wrap; color: #d5e0e7; }
+.pills { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+.pill { background: var(--bg3); border: 1px solid var(--line); border-radius: 99px; padding: 2px 8px; font-size: 11px; }
+footer {
+  display: flex; align-items: center; gap: 12px; padding: 0 14px;
+  border-top: 1px solid var(--line); background: var(--bg2); color: var(--muted); font-size: 11px;
+}
+#prog { height: 4px; background: #1c2a33; width: 180px; }
+#prog > i { display: block; height: 100%; width: 0; background: var(--accent); }
+.hidden { display: none !important; }
+@media (max-width: 1200px) {
+  main { grid-template-columns: var(--aside) 6px 1fr; }
+  .split.d, .detail { display: none; }
+  .detail.open { display: flex; position: absolute; inset: 56px 0 28px auto; width: min(var(--detail), 100%); }
+}
+.iconbtn { min-width: 44px; height: 40px; padding: 0 8px; font-size: 18px; }
+.simple-only { display: none; }
+.sheet {
+  position: fixed; inset: 0; z-index: 25; background: rgba(6,10,14,.55);
+  display: none; align-items: stretch; justify-content: flex-end;
+}
+.sheet.open { display: flex; }
+.sheet .panel {
+  width: min(420px, 100%); background: var(--bg2); border-left: 1px solid var(--line);
+  display: flex; flex-direction: column; max-height: 100%;
+}
+.sheet .panel-h {
+  display: flex; align-items: center; gap: 8px; padding: 12px 14px;
+  border-bottom: 1px solid var(--line); flex-shrink: 0;
+}
+.sheet .panel-h h2 { margin: 0; }
+.sheet .panel-b { overflow: auto; flex: 1; padding: 12px 14px; }
+body.simple .simple-only { display: inline-flex; }
+body.simple header .desk-only,
+body.simple header .grow { display: none !important; }
+body.simple #app { grid-template-rows: auto 1fr 28px; }
+body.simple header {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto auto;
+  grid-template-areas:
+    "s title kpis filt file"
+    "search search search search search";
+  align-items: center;
+  padding: 6px 10px 8px;
+  gap: 6px 8px;
+  flex-wrap: unset;
+  min-height: 0;
+}
+body.simple #simpleBtn { grid-area: s; }
+body.simple header h1 { grid-area: title; font-size: 12px; max-width: none; }
+body.simple header h1 .ver { display: none; }
+body.simple .kpis {
+  grid-area: kpis;
+  justify-self: center;
+  gap: 14px;
+  font-size: 12px;
+}
+body.simple .kpis b { font-size: 15px; color: var(--accent); }
+body.simple .kpi-c { display: block; }
+body.simple #searchMenuBtn { grid-area: filt; }
+body.simple #fileMenuBtn { grid-area: file; }
+body.simple #searchwrap {
+  grid-area: search;
+  display: flex !important;
+  width: 100%;
+}
+body.simple .search { width: 100%; padding-right: 118px; }
+body.simple #clearQ { right: 96px; }
+body.simple #deepBtn {
+  min-width: 88px; height: 34px; padding: 0 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: .04em;
+}
+body.simple main { grid-template-columns: 1fr; }
+body.simple aside.filters, body.simple .split, body.simple #charts, body.simple .split.h { display: none !important; }
+body.simple #center { grid-template-rows: 1fr; }
+body.simple #cols { display: none; }
+body.simple #colsSimple {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px 118px;
+  height: 40px;
+  font-size: 9px;
+  letter-spacing: .04em;
+  column-gap: 0;
+}
+body.simple #colsSimple span { white-space: normal; line-height: 1.15; align-items: center; padding: 0 6px; }
+body.simple #colsSimple span[data-k="id"] { justify-content: flex-start; text-align: left; }
+body.simple #colsSimple span[data-k="start"] { justify-content: flex-end; text-align: right; padding-right: 4px; }
+body.simple #colsSimple span[data-k="commit"] { justify-content: flex-end; text-align: right; padding-left: 0; padding-right: 8px; }
+body.simple #scroller { height: 100%; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+body.simple .row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 76px 118px;
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  height: 90px;
+  padding: 7px 8px;
+  gap: 1px 0;
+  touch-action: manipulation;
+}
+body.simple .row .c-id { grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+body.simple .row .c-st { font-size: 11px; font-weight: 600; }
+body.simple .row .c-start { grid-column: 2; grid-row: 1; color: var(--muted); font-size: 12px; text-align: right; padding: 0 4px 0 0; }
+body.simple .row .c-commit {
+  grid-column: 3; grid-row: 1;
+  text-align: right; font-size: 15px; font-weight: 700; font-family: var(--mono);
+  padding-left: 0;
+}
+body.simple .row .r2 {
+  grid-column: 1 / 3; grid-row: 2;
+  font-size: 13px; line-height: 1.25; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+body.simple .row .c-disb {
+  grid-column: 3; grid-row: 2;
+  font-size: 11px; color: #6d8290; font-weight: 400; text-align: right; font-family: var(--mono);
+}
+body.simple .row .r3 { grid-column: 1 / -1; grid-row: 3; min-width: 0; }
+body.simple .row .meta { color: var(--muted); font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; display: block; }
+body.simple .detail {
+  display: none;
+  position: fixed;
+  left: 0; right: 0; bottom: 28px; top: auto;
+  z-index: 28;
+  width: 100% !important;
+  height: min(62vh, 560px);
+  max-height: calc(100vh - 120px);
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 12px 12px 0 0;
+  background: var(--bg2);
+  box-shadow: 0 -10px 28px rgba(0,0,0,.4);
+  padding-bottom: max(10px, env(safe-area-inset-bottom));
+  touch-action: pan-y;
+}
+body.simple #detailBody { -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+body.simple .detail.open { display: flex; }
+body.simple .detail.full {
+  top: 0;
+  bottom: 28px;
+  height: auto;
+  max-height: none;
+  border-radius: 0;
+  z-index: 32;
+}
+body.simple.fiche-open:not(.fiche-full) #scroller { padding-bottom: min(62vh, 560px); }
+body.simple.fiche-full #scroller { padding-bottom: 0; }
+body.simple footer .keys { display: none; }
+body.simple #prog { width: 80px; }
+body.simple .sheet .searchwrap { width: 100%; display: flex; margin-bottom: 10px; }
+body.simple .sheet .searchwrap .search { width: 100%; }
+#closeDetail, #expandDetail { display: none; }
+body.simple #closeDetail, body.simple #expandDetail { display: inline-flex; }
+body.simple .sheet .panel-b > .btn { display: block; width: 100%; margin: 0 0 8px; }
+body.simple .sheet .panel-b > .searchwrap { width: 100%; margin: 0 0 10px; }
+body.simple .sheet .drop .stack .btn { width: 100%; }
+#simpleBtn.on { background: #3a2f14; border-color: #6d5722; color: var(--accent); }
+body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
+.simple-cols { display: none; }
+@media (max-width: 820px) {
+  header h1 { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
+  body.simple header h1 { max-width: 28vw; }
+  .sheet { align-items: flex-end; }
+  .sheet .panel {
+    width: 100%; max-height: 88%;
+    border-left: 0; border-top: 1px solid var(--line);
+    border-radius: 12px 12px 0 0;
+  }
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <button class="btn iconbtn" id="simpleBtn" title="Mode simplifié (téléphone)">S</button>
+    <h1>IATI <span>AMC</span> local <em class="ver">(v0.1.3)</em></h1>
+    <div class="searchwrap" id="searchwrap">
+      <input class="search" id="q" placeholder="Recherche : texte, id:P009528, pays:PS, secteur:72010, partenaire:WFP, statut:3, hum:1" spellcheck="false">
+      <button type="button" id="clearQ" title="Effacer la recherche">×</button>
+      <button class="btn" id="deepBtn" title="Étendre la recherche au texte des fiches (description, résultats, marqueurs). Les correspondances sont surlignées.">E</button>
+    </div>
+    <button class="btn desk-only" id="langBtn" title="Langue des textes projet">FR / EN</button>
+    <button class="btn desk-only" id="favToggle" title="Afficher seulement les favoris">Favoris</button>
+    <button class="btn desk-only" id="diffToggle" title="Afficher les écarts vs le gel">Diff</button>
+    <button class="btn desk-only" id="exportBtn">CSV filtré</button>
+    <button class="btn desk-only" id="exportXmlBtn">XML filtré</button>
+    <div class="grow"></div>
+    <button class="btn iconbtn simple-only" id="searchMenuBtn" title="Filtres et favoris">⌕</button>
+    <button class="btn iconbtn simple-only" id="fileMenuBtn" title="Fichiers, import, export">☰</button>
+    <div class="kpis">
+      <div><b id="kN">0</b> projets</div>
+      <div class="kpi-c"><b id="kC">0</b> engagé</div>
+      <div class="kpi-d desk-only"><b id="kD">0</b> décaissé</div>
+    </div>
+  </header>
+  <main>
+    <aside class="filters pad">
+      <div class="aside-body">
+        <div id="fileBlock">
+        <div class="drop" id="drop">
+          Dépose les XML IITA ici
+          <div class="stack">
+            <button class="btn wide" id="dlOfficialBtn" title="Ouvre la page officielle AMC / IITA">Télécharger les données</button>
+            <button class="btn primary wide" id="pickBtn">Choisir des fichiers</button>
+            <button class="btn wide" id="checkBtn">Vérifier en ligne</button>
+          </div>
+          <input type="file" id="file" accept=".xml,text/xml,application/xml" multiple hidden>
+        </div>
+        <div class="files" id="fileList"></div>
+        <p class="hint">Fichiers officiels dfatd-maecd_activit_status_*.xml. Tout reste dans le navigateur.</p>
+        </div>
+        <div id="filterBlock">
+        <div class="facet">
+          <h2>Statut</h2>
+          <label class="chk"><input type="checkbox" data-st="2" checked> Actif <span class="hint" data-stn="2">(0)</span></label>
+          <label class="chk"><input type="checkbox" data-st="3" checked> Finalisation <span class="hint" data-stn="3">(0)</span></label>
+          <label class="chk"><input type="checkbox" data-st="4" checked> Fermé <span class="hint" data-stn="4">(0)</span></label>
+          <label class="chk"><input type="checkbox" data-st="1" checked> Pipeline <span class="hint" data-stn="1">(0)</span></label>
+          <label class="chk"><input type="checkbox" data-st="5" checked> Annulé <span class="hint" data-stn="5">(0)</span></label>
+          <label class="chk"><input type="checkbox" data-st="6" checked> Suspendu <span class="hint" data-stn="6">(0)</span></label>
+        </div>
+        <div class="facet">
+          <h2>Humanitaire</h2>
+          <select class="full" id="hum">
+            <option value="">Tous</option>
+            <option value="1">Humanitaire seulement</option>
+            <option value="0">Non humanitaire</option>
+          </select>
+        </div>
+        <div class="facet">
+          <h2>Dates (début)</h2>
+          <div class="range">
+            <input id="d0" placeholder="2000-01-01">
+            <input id="d1" placeholder="2026-12-31">
+          </div>
+        </div>
+        <div class="facet">
+          <h2>Engagement CAD $</h2>
+          <div class="range">
+            <input id="m0" type="number" placeholder="min">
+            <input id="m1" type="number" placeholder="max">
+          </div>
+        </div>
+        <div class="facet">
+          <h2>Pays / région</h2>
+          <input class="full" id="countryQ" placeholder="PS, UA, Haiti…">
+        </div>
+        <div class="facet">
+          <h2>Secteur / code</h2>
+          <input class="full" id="sectorQ" placeholder="72010, santé, éducation…">
+        </div>
+        <div class="facet">
+          <h2>Partenaire</h2>
+          <input class="full" id="partnerQ" placeholder="nom ou code">
+        </div>
+        <button class="btn wide lg" id="resetBtn">Réinitialiser filtres</button>
+        </div>
+      </div>
+      <div class="aside-foot">
+        <button class="btn wide ghost" id="clearBtn" disabled>Vider la base locale</button>
+      </div>
+    </aside>
+    <div class="split" id="splitL" title="Redimensionner"></div>
+    <section id="center">
+      <div id="scroller">
+      <div class="cols" id="cols">
+        <span></span>
+        <span data-k="id">Identifiant<i class="grip" data-col="1" title="Largeur identifiant"></i></span>
+        <span data-k="title">Titre<i class="grip" data-col="2" title="Largeur titre"></i></span>
+        <span data-k="country">Pays<i class="grip" data-col="3" title="Largeur pays"></i></span>
+        <span data-k="status">Statut<i class="grip" data-col="4" title="Largeur statut"></i></span>
+        <span data-k="start">Début<i class="grip" data-col="5" title="Largeur début"></i></span>
+        <span data-k="commit">Engagé<i class="grip" data-col="6" title="Largeur engagé"></i></span>
+        <span data-k="disb">Décaissé</span>
+      </div>
+      <div class="cols simple-cols" id="colsSimple">
+        <span data-k="id">Identifiant</span>
+        <span data-k="start">DATE DE DÉBUT</span>
+        <span data-k="commit">DÉPENSES ENGAGÉES</span>
+      </div>
+      <div id="spacer"><div id="rows"></div></div>
+      </div>
+      <div class="split h" id="splitH" title="Redimensionner"></div>
+      <div id="charts">
+        <div class="chartbox"><h2>Pays (filtre courant)</h2><div id="cCountry"></div></div>
+        <div class="chartbox"><h2>Secteurs</h2><div id="cSector"></div></div>
+        <div class="chartbox"><h2>Partenaires</h2><div id="cPartner"></div></div>
+      </div>
+    </section>
+    <div class="split d" id="splitR" title="Redimensionner"></div>
+    <section class="detail pad" id="detail">
+      <div class="detail-head">
+        <h2>Fiche</h2>
+        <div class="detail-tools">
+          <button class="btn" id="copyBtn" title="Copier la fiche">Copier</button>
+          <button class="btn" id="favBtn" title="Ajouter aux favoris">Favori</button>
+          <button class="btn iconbtn" id="expandDetail" title="Plein écran">▴</button>
+          <button class="btn iconbtn" id="closeDetail" title="Fermer">×</button>
+        </div>
+      </div>
+      <div id="detailBody" class="hint">Charge les XML, puis clique une ligne.</div>
+    </section>
+  </main>
+  <footer>
+    <div id="prog"><i id="progBar"></i></div>
+    <span id="status">En attente de fichiers.</span>
+    <span class="grow"></span>
+    <span class="keys">Raccourcis : / recherche · j/k ligne · F favori · C copier · Esc fermer</span>
+  </footer>
+</div>
+<div id="modal" class="modal hidden"></div>
+<div id="sheetSearch" class="sheet" aria-hidden="true">
+  <div class="panel">
+    <div class="panel-h"><h2>Filtres</h2><span class="grow"></span><button class="btn iconbtn" id="closeSearch" title="Fermer">×</button></div>
+    <div class="panel-b" id="sheetSearchBody"></div>
+  </div>
+</div>
+<div id="sheetFile" class="sheet" aria-hidden="true">
+  <div class="panel">
+    <div class="panel-h"><h2>Fichiers</h2><span class="grow"></span><button class="btn iconbtn" id="closeFile" title="Fermer">×</button></div>
+    <div class="panel-b" id="sheetFileBody"></div>
+  </div>
+</div>
+
+<script id="worker-src" type="text/plain">
+const RE_ID = /<iati-identifier>([^<]+)<\/iati-identifier>/;
+const RE_STATUS = /<activity-status code="(\d+)"/;
+const RE_HUM = /humanitarian="(\d)"/;
+const RE_TITLE = /<title>([\s\S]*?)<\/title>/;
+const RE_DESC = /<description[^>]*>([\s\S]*?)<\/description>/;
+const RE_NAR = /<narrative(?:\s+xml:lang="([a-z]+)")?[^>]*>([\s\S]*?)<\/narrative>/g;
+const RE_DATE = /<activity-date type="(\d)" iso-date="([^"]+)"/g;
+const RE_COUNTRY = /<recipient-country([^>]*)>/g;
+const RE_REGION = /<recipient-region([^>]*)>/g;
+const RE_SECTOR = /<sector([^>]*)>/g;
+const RE_POL = /<policy-marker([^>]*)>/g;
+const RE_ORG = /<participating-org([^>]*)>([\s\S]*?)<\/participating-org>/g;
+const RE_TX = /<transaction>([\s\S]*?)<\/transaction>/g;
+const RE_REL = /<related-activity[^>]*ref="([^"]+)"/g;
+const RE_RES = /<result([^>]*)>([\s\S]*?)<\/result>/g;
+const RE_UPD = /last-updated-datetime="([^"]+)"/;
+const RE_ATTR = /(\w+(?:-\w+)*)="([^"]*)"/g;
+
+function attrs(s) {
+  const o = {};
+  RE_ATTR.lastIndex = 0;
+  let m;
+  while ((m = RE_ATTR.exec(s))) o[m[1]] = m[2];
+  return o;
+}
+function unesc(s) {
+  return s.replace(/&(?:amp|lt|gt|quot|apos);/g, m => ({
+    amp: "\u0026", lt: "\u003c", gt: "\u003e", quot: "\u0022", apos: "\u0027"
+  }[m.slice(1, -1)]));
+}
+function narratives(inner) {
+  const out = {en:"", fr:""};
+  RE_NAR.lastIndex = 0;
+  let m;
+  while ((m = RE_NAR.exec(inner))) {
+    const lang = (m[1] || "en").slice(0,2);
+    const t = unesc(m[2]).trim();
+    if (lang === "fr") out.fr = out.fr || t;
+    else out.en = out.en || t;
+  }
+  if (!out.en) out.en = out.fr;
+  if (!out.fr) out.fr = out.en;
+  return out;
+}
+function num(v){ const n = parseFloat(v); return Number.isFinite(n) ? n : 0; }
+
+function extract(block) {
+  const idm = RE_ID.exec(block);
+  const id = idm ? idm[1] : "";
+  const st = RE_STATUS.exec(block);
+  const hum = RE_HUM.exec(block);
+  const tm = RE_TITLE.exec(block);
+  const title = tm ? narratives(tm[1]) : {en:"",fr:""};
+  let desc = {en:"",fr:""};
+  const dm = RE_DESC.exec(block);
+  if (dm) desc = narratives(dm[1]);
+  const dates = {};
+  RE_DATE.lastIndex = 0;
+  let m;
+  while ((m = RE_DATE.exec(block))) dates[m[1]] = m[2];
+  const countries = [];
+  RE_COUNTRY.lastIndex = 0;
+  while ((m = RE_COUNTRY.exec(block))) {
+    const a = attrs(m[1]);
+    if (a.code) countries.push({code:a.code, pct:num(a.percentage||100)});
+  }
+  const regions = [];
+  RE_REGION.lastIndex = 0;
+  while ((m = RE_REGION.exec(block))) {
+    const a = attrs(m[1]);
+    if (a.code) regions.push({code:a.code, pct:num(a.percentage||100)});
+  }
+  const sectors = [];
+  RE_SECTOR.lastIndex = 0;
+  while ((m = RE_SECTOR.exec(block))) {
+    const a = attrs(m[1]);
+    if (a.code) sectors.push({code:a.code, vocab:a.vocabulary||"1", pct:num(a.percentage||100)});
+  }
+  const markers = [];
+  RE_POL.lastIndex = 0;
+  while ((m = RE_POL.exec(block))) {
+    const a = attrs(m[1]);
+    markers.push({code:a.code, sig:a.significance, vocab:a.vocabulary||"1"});
+  }
+  let impl = {ref:"", name:{en:"",fr:""}};
+  RE_ORG.lastIndex = 0;
+  while ((m = RE_ORG.exec(block))) {
+    const a = attrs(m[1]);
+    const nm = narratives(m[2]);
+    if (a.role === "4") impl = {ref:a.ref||"", name:nm};
+  }
+  let commit = 0, disb = 0;
+  const txs = [];
+  RE_TX.lastIndex = 0;
+  while ((m = RE_TX.exec(block))) {
+    const type = /<transaction-type code="(\d+)"/.exec(m[1]);
+    const date = /<transaction-date iso-date="([^"]+)"/.exec(m[1]);
+    const val = /<value[^>]*>([^<]+)</.exec(m[1]);
+    const rec = {type: type?type[1]:"", date: date?date[1]:"", value: val?num(val[1]):0};
+    txs.push(rec);
+    if (rec.type === "2") commit += rec.value;
+    if (rec.type === "3") disb += rec.value;
+  }
+  if (!commit) {
+    const bm = /<budget[\s\S]*?<value[^>]*>([^<]+)</.exec(block);
+    if (bm) commit = num(bm[1]);
+  }
+  const related = [];
+  RE_REL.lastIndex = 0;
+  while ((m = RE_REL.exec(block))) related.push(m[1]);
+  const results = [];
+  RE_RES.lastIndex = 0;
+  while ((m = RE_RES.exec(block))) {
+    const titleR = /<title>([\s\S]*?)<\/title>/.exec(m[2]);
+    const descR = /<description>([\s\S]*?)<\/description>/.exec(m[2]);
+    results.push({
+      type: (attrs(m[1]).type)||"",
+      title: titleR ? narratives(titleR[1]) : {en:"",fr:""},
+      text: descR ? narratives(descR[1]) : {en:"",fr:""}
+    });
+  }
+  const start = dates["2"] || dates["1"] || "";
+  const end = dates["3"] || dates["4"] || "";
+  const countryCodes = countries.map(c=>c.code).join(" ");
+  const hay = (id+" "+title.en+" "+title.fr+" "+impl.name.en+" "+impl.name.fr+" "+(impl.ref||"")+" "+countryCodes+" "+sectors.map(s=>s.code).join(" ")).toLowerCase();
+  const hayFull = (hay+" "+desc.en+" "+desc.fr+" "+results.map(r=> (r.title.en||"")+" "+(r.title.fr||"")+" "+(r.text.en||"")+" "+(r.text.fr||"")).join(" ")+" "+markers.map(m=>m.code).join(" ")+" "+related.join(" ")).toLowerCase();
+  const upd = RE_UPD.exec(block);
+  return {
+    id, short: id.replace(/^CA-3-/,""),
+    status: st ? +st[1] : 0,
+    hum: hum ? +hum[1] : 0,
+    title, desc, start, end,
+    commit, disb,
+    countries, regions, sectors, markers,
+    impl, related, results, txs,
+    updated: upd ? upd[1] : "",
+    hay, hayFull
+  };
+}
+
+self.onmessage = (e) => {
+  const { name, buffer } = e.data;
+  const text = new TextDecoder("utf-8").decode(buffer);
+  const acts = [];
+  let pos = 0, n = 0;
+  while (true) {
+    const start = text.indexOf("<iati-activity", pos);
+    if (start < 0) break;
+    const end = text.indexOf("</iati-activity>", start);
+    if (end < 0) break;
+    acts.push(extract(text.slice(start, end)));
+    pos = end + 16;
+    n++;
+    if (n % 400 === 0) self.postMessage({type:"progress", name, n});
+  }
+  self.postMessage({type:"file", name, n: acts.length, acts});
+};
+</script>
+
+<script>
+const VERSION = "0.1.3";
+const COUNTRIES = {AF:"Afghanistan",AL:"Albanie",DZ:"Algérie",AO:"Angola",AR:"Argentine",AM:"Arménie",AZ:"Azerbaïdjan",BD:"Bangladesh",BY:"Bélarus",BJ:"Bénin",BT:"Bhoutan",BO:"Bolivie",BA:"Bosnie",BW:"Botswana",BR:"Brésil",BF:"Burkina Faso",BI:"Burundi",KH:"Cambodge",CM:"Cameroun",CV:"Cabo Verde",CF:"RCA",TD:"Tchad",CN:"Chine",CO:"Colombie",KM:"Comores",CD:"RDC",CG:"Congo",CR:"Costa Rica",CI:"Côte d'Ivoire",CU:"Cuba",DJ:"Djibouti",DO:"Rép. dominicaine",EC:"Équateur",EG:"Égypte",SV:"Salvador",ER:"Érythrée",SZ:"Eswatini",ET:"Éthiopie",FJ:"Fidji",GA:"Gabon",GM:"Gambie",GE:"Géorgie",GH:"Ghana",GT:"Guatemala",GN:"Guinée",GW:"Guinée-Bissau",GY:"Guyana",HT:"Haïti",HN:"Honduras",IN:"Inde",ID:"Indonésie",IQ:"Irak",IR:"Iran",JM:"Jamaïque",JO:"Jordanie",KZ:"Kazakhstan",KE:"Kenya",XK:"Kosovo",KG:"Kirghizistan",LA:"Laos",LB:"Liban",LS:"Lesotho",LR:"Liberia",LY:"Libye",MG:"Madagascar",MW:"Malawi",MY:"Malaisie",ML:"Mali",MR:"Mauritanie",MU:"Maurice",MX:"Mexique",MD:"Moldavie",MN:"Mongolie",ME:"Monténégro",MA:"Maroc",MZ:"Mozambique",MM:"Myanmar",NA:"Namibie",NP:"Népal",NI:"Nicaragua",NE:"Niger",NG:"Nigeria",MK:"Macédoine du N.",PK:"Pakistan",PS:"Palestine",PA:"Panama",PG:"Papouasie",PY:"Paraguay",PE:"Pérou",PH:"Philippines",RW:"Rwanda",WS:"Samoa",SN:"Sénégal",RS:"Serbie",SL:"Sierra Leone",SB:"Salomon",SO:"Somalie",ZA:"Afrique du Sud",SS:"Soudan du Sud",LK:"Sri Lanka",SD:"Soudan",SR:"Suriname",SY:"Syrie",TJ:"Tadjikistan",TZ:"Tanzanie",TH:"Thaïlande",TL:"Timor-Leste",TG:"Togo",TN:"Tunisie",TR:"Türkiye",TM:"Turkménistan",UG:"Ouganda",UA:"Ukraine",UZ:"Ouzbékistan",VU:"Vanuatu",VE:"Venezuela",VN:"Viêt Nam",YE:"Yémen",ZM:"Zambie",ZW:"Zimbabwe"};
+const SECTORS = {
+"11110":"Politique éducative","11120":"Installations éducatives","11130":"Formation enseignants","11182":"Recherche éducation",
+"11220":"Éducation primaire","11230":"Compétences de base adultes","11240":"Petite enfance",
+"11320":"Éducation secondaire","11330":"Formation professionnelle","11420":"Éducation supérieure","11430":"Formation supérieure",
+"12110":"Politique santé","12181":"Formation médicale","12182":"Recherche médicale","12191":"Services médicaux",
+"12220":"Soins de santé primaires","12230":"Infrastructure santé de base","12240":"Nutrition de base","12250":"Lutte maladies infectieuses","12261":"Éducation sanitaire","12262":"Contrôle paludisme","12263":"Lutte tuberculose","12281":"Personnel santé",
+"12310":"Politique NCDs","12340":"Promotion santé","12350":"Maladies infectieuses","12382":"Recherche contrôle maladies",
+"13010":"Politique population","13020":"Soins reproductifs","13030":"Planning familial","13040":"Lutte MST","13081":"Personnel population",
+"14010":"Politique eau","14015":"Gestion ressources eau","14020":"Approvisionnement eau/assain.","14021":"Eau potable – grands systèmes","14022":"Assainissement – grands systèmes","14030":"Politique basique eau","14031":"Eau potable de base","14032":"Assainissement de base",
+"15110":"Politique publique","15111":"Gestion finances publiques","15112":"Décentralisation","15113":"Lutte anticorruption","15114":"Macroéconomique","15130":"Développement légal et judiciaire","15150":"Participation démocratique / société civile","15151":"Élections","15152":"Législatures et partis","15153":"Médias et information","15160":"Droits humains","15170":"Organisations et mouvements pour l'égalité des sexes","15180":"Financement des recettes intérieures","15190":"Mobilisation fiscale",
+"15210":"Gestion/réforme du secteur de la sécurité","15220":"Prévention et règlement des conflits","15230":"Consolidation de la paix après un conflit","15240":"Réintégration et RAV","15250":"Déminage","15261":"Enfants soldats",
+"16010":"Politique sociale / protection sociale","16020":"Politique de l'emploi","16050":"Aide sociale multifectorielle","16064":"Réhabilitation sociale",
+"21010":"Politique transports","21020":"Transport routier","21030":"Rail","21040":"Transport fluvial","21050":"Air",
+"22010":"Politique communications","22040":"Technologies information",
+"23010":"Politique énergétique","23110":"Politique énergie","23181":"Éducation/formation énergie","23210":"Production énergie renouvelable","23220":"Hydro","23230":"Solaire","23240":"Éolien","23630":"Distribution électrique",
+"24010":"Politique financière","24030":"Institutions financières formelles","24040":"Informel / microfinance","24081":"Éducation/formation finance",
+"25010":"Politique des entreprises","25030":"Services développement des entreprises",
+"31110":"Politique agricole","31120":"Développement agricole","31130":"Ressources agricoles","31140":"Éducation/formation agricole","31161":"Production alimentaire","31163":"Élevage","31166":"Vulgarisation agricole","31181":"Éducation agricole","31182":"Recherche agricole","31191":"Services agricoles","31195":"Élevage / services vétérinaires",
+"31210":"Politique forestière","31220":"Développement forestier","31310":"Politique pêche","31320":"Développement pêche",
+"32130":"Développement PME","32161":"Agro-industries","32162":"Industries forestières","32210":"Politique minière",
+"33110":"Politique commerciale","33210":"Tourisme",
+"41010":"Politique environnementale","41020":"Biosphère","41030":"Biodiversité","41040":"Protection des sites","41050":"Contrôle / prévention crues","41081":"Éducation/formation environnement","41082":"Recherche environnementale",
+"43010":"Aide multisectorielle","43030":"Développement urbain","43040":"Développement rural","43050":"Aide multisectorielle pour services sociaux de base","43060":"Recherche scientifique","43071":"Sécurité alimentaire et agricole",
+"51010":"Soutien budgétaire général",
+"52010":"Sécurité alimentaire / aide alimentaire développement",
+"60010":"Allégement de la dette",
+"72010":"Aide matérielle d'urgence","72040":"Aide alimentaire d'urgence","72050":"Secours / coordination","73010":"Reconstruction","74020":"Réduction des risques de catastrophe",
+"91010":"Coûts administratifs donateurs","93010":"Réfugiés dans le pays donneur","99810":"Secteurs non spécifiés","99820":"Sensibilisation au développement"
+};
+const MARKERS = {
+"1":"Égalité des sexes","2":"Environnement","3":"Gouvernance participative","4":"Développement du commerce",
+"5":"Biodiversité","6":"Atténuation climatique","7":"Adaptation climatique","8":"Désertification",
+"9":"SRMNE","10":"Inclusion du handicap","11":"Réduction des risques de catastrophe","12":"Nutrition"
+};
+const STATUS = {1:"Pipeline",2:"Actif",3:"Finalisation",4:"Fermé",5:"Annulé",6:"Suspendu"};
+
+const $ = (id) => document.getElementById(id);
+const state = {
+  items: [],
+  filtered: [],
+  sort: {key:"commit", dir:-1},
+  sel: -1,
+  lang: "fr",
+  parseMs: 0,
+  favs: new Set(),
+  favOnly: false,
+  current: null,
+  files: [],
+  deep: false,
+  snap: null,
+  snapMap: new Map(),
+  diffMode: false,
+  diffShow: {added:true, removed:true, modified:true},
+  diff: {added:[], removed:[], modified:[], kind:new Map()},
+  simple: false,
+  ficheFull: false
+};
+
+let worker;
+function bootWorker() {
+  const src = document.getElementById("worker-src").textContent;
+  worker = new Worker(URL.createObjectURL(new Blob([src], {type:"text/javascript"})));
+  worker.onmessage = onWorker;
+}
+
+const dbName = "iati-amc-local-v1";
+function idb(fn) {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(dbName, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore("pack");
+    req.onsuccess = () => {
+      const db = req.result;
+      Promise.resolve(fn(db)).then(res, rej).finally(() => db.close());
+    };
+    req.onerror = () => rej(req.error);
+  });
+}
+async function savePack() {
+  await idb(db => new Promise((res, rej) => {
+    const tx = db.transaction("pack","readwrite");
+    tx.objectStore("pack").put({items: state.items, files: state.files, ts: Date.now()}, "data");
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  }));
+}
+async function loadPack() {
+  return idb(db => new Promise((res, rej) => {
+    const tx = db.transaction("pack","readonly");
+    const g = tx.objectStore("pack").get("data");
+    g.onsuccess = () => res(g.result); g.onerror = () => rej(g.error);
+  }));
+}
+async function clearPack() {
+  await idb(db => new Promise((res, rej) => {
+    const tx = db.transaction("pack","readwrite");
+    tx.objectStore("pack").clear();
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  }));
+}
+async function saveSnap() {
+  await idb(db => new Promise((res, rej) => {
+    const tx = db.transaction("pack","readwrite");
+    if (state.snap) tx.objectStore("pack").put(state.snap, "snap");
+    else tx.objectStore("pack").delete("snap");
+    tx.oncomplete = res; tx.onerror = () => rej(tx.error);
+  }));
+}
+async function loadSnap() {
+  return idb(db => new Promise((res, rej) => {
+    const tx = db.transaction("pack","readonly");
+    const g = tx.objectStore("pack").get("snap");
+    g.onsuccess = () => res(g.result); g.onerror = () => rej(g.error);
+  }));
+}
+function setSnap(items) {
+  const copy = items.map(a => a);
+  state.snap = {items: copy, ts: Date.now(), n: copy.length};
+  state.snapMap = new Map(copy.map(a => [a.id, a]));
+}
+function clearSnapMem() {
+  state.snap = null;
+  state.snapMap = new Map();
+  state.diff = {added:[], removed:[], modified:[], kind:new Map()};
+  state.diffMode = false;
+}
+
+function money(n) {
+  if (!n) return "0";
+  const abs = Math.abs(n);
+  if (abs >= 1e9) return (n/1e9).toFixed(2)+" G$";
+  if (abs >= 1e6) return (n/1e6).toFixed(2)+" M$";
+  if (abs >= 1e3) return Math.round(n).toLocaleString("fr-CA")+" $";
+  return n.toLocaleString("fr-CA", {maximumFractionDigits:0})+" $";
+}
+function countryName(code){ return COUNTRIES[code] || code; }
+function sectorName(code){ return SECTORS[code] || code; }
+function t(obj){ if(!obj) return ""; return state.lang==="fr" ? (obj.fr||obj.en||"") : (obj.en||obj.fr||""); }
+
+function setStatus(msg){ $("status").textContent = msg; }
+function setProg(p){ $("progBar").style.width = (p*100).toFixed(1)+"%"; }
+function setDbButton(hasData) {
+  const btn = $("clearBtn");
+  btn.disabled = !hasData;
+  btn.classList.toggle("danger", !!hasData);
+  btn.classList.toggle("ghost", !hasData);
+}
+
+function fp(a) {
+  const title = a.title || {};
+  const impl = a.impl || {ref:"", name:{}};
+  return [
+    a.status, a.hum, a.start||"", a.end||"",
+    Math.round((a.commit||0)*100)/100,
+    Math.round((a.disb||0)*100)/100,
+    title.fr||"", title.en||"",
+    impl.ref||"",
+    (a.countries||[]).map(c => c.code+":"+c.pct).sort().join("|"),
+    (a.sectors||[]).map(s => s.code+":"+s.pct).sort().join("|")
+  ].join("\t");
+}
+function rebuildDiff() {
+  const added = [], removed = [], modified = [];
+  const kind = new Map();
+  if (!state.snap || !state.snap.items) {
+    state.diff = {added, removed, modified, kind};
+    syncDiffUi();
+    return;
+  }
+  const now = new Map(state.items.map(a => [a.id, a]));
+  const prev = state.snapMap.size ? state.snapMap : new Map(state.snap.items.map(a => [a.id, a]));
+  state.snapMap = prev;
+  for (const [id, a] of now) {
+    if (!prev.has(id)) { added.push(a); kind.set(id, "added"); }
+    else if (fp(a) !== fp(prev.get(id))) { modified.push(a); kind.set(id, "modified"); }
+  }
+  for (const [id, a] of prev) {
+    if (!now.has(id)) { removed.push(a); kind.set(id, "removed"); }
+  }
+  state.diff = {added, removed, modified, kind};
+  syncDiffUi();
+}
+function syncDiffUi() {
+  const btn = $("diffToggle");
+  if (!btn) return;
+  const has = !!(state.snap && state.snap.items);
+  const n = state.diff.added.length + state.diff.removed.length + state.diff.modified.length;
+  btn.classList.toggle("on", state.diffMode);
+  btn.textContent = has ? "Diff ("+n+")" : "Diff";
+  btn.title = has
+    ? "Gel du "+new Date(state.snap.ts).toLocaleString("fr-CA")+" · "+state.snap.n+" projets · +"+state.diff.added.length+" / −"+state.diff.removed.length+" / ~"+state.diff.modified.length
+    : "Aucun gel. Recharge un XML déjà en mémoire pour en créer un.";
+}
+function askModal(title, body, actions) {
+  return new Promise(resolve => {
+    const box = $("modal");
+    box.classList.remove("hidden");
+    box.innerHTML = '<div class="box"><h3>'+esc(title)+"</h3><p>"+body+"</p><div class=\"actions\">"
+      + actions.map((a,i) => '<button class="btn '+(a.cls||"")+' wide" data-i="'+i+'">'+esc(a.label)+"</button>").join("")
+      + "</div></div>";
+    box.onclick = ev => {
+      if (ev.target === box) { box.classList.add("hidden"); box.innerHTML=""; resolve("cancel"); }
+    };
+    box.querySelectorAll("[data-i]").forEach(btn => {
+      btn.onclick = () => {
+        const i = +btn.dataset.i;
+        box.classList.add("hidden"); box.innerHTML="";
+        resolve(actions[i].id);
+      };
+    });
+  });
+}
+
+const FAV_KEY = "iati-amc-favs-v1";
+function loadFavs() {
+  try {
+    const raw = localStorage.getItem(FAV_KEY);
+    state.favs = new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) { state.favs = new Set(); }
+}
+function saveFavs() {
+  localStorage.setItem(FAV_KEY, JSON.stringify([...state.favs]));
+  syncFavUi();
+}
+function isFav(id) { return state.favs.has(id); }
+function toggleFav(id) {
+  if (!id) return;
+  if (state.favs.has(id)) state.favs.delete(id); else state.favs.add(id);
+  saveFavs();
+  renderRows();
+  if (state.current && state.current.id === id) syncFavUi();
+}
+function syncFavUi() {
+  const on = !!(state.current && isFav(state.current.id));
+  $("favBtn").classList.toggle("on", on);
+  $("favBtn").textContent = on ? "Favori ✓" : "Favori";
+  $("favToggle").classList.toggle("on", state.favOnly);
+  $("favToggle").textContent = state.favOnly ? "Favoris ("+state.favs.size+")" : "Favoris";
+}
+
+const OFFICIAL_PAGE = "https://www.international.gc.ca/world-monde/issues_development-enjeux_developpement/priorities-priorites/initiative.aspx?lang=fra";
+const OFFICIAL = [
+  {key:"status_2", url:"https://w05.international.gc.ca/projectbrowser-banqueprojets/iita-iati/dfatd-maecd_activit_status_2.xml"},
+  {key:"status_3", url:"https://w05.international.gc.ca/projectbrowser-banqueprojets/iita-iati/dfatd-maecd_activit_status_3.xml"},
+  {key:"status_4c", url:"https://w05.international.gc.ca/projectbrowser-banqueprojets/iita-iati/dfatd-maecd_activit_status_4c.xml"},
+  {key:"status_4b", url:"https://w05.international.gc.ca/projectbrowser-banqueprojets/iita-iati/dfatd-maecd_activit_status_4b.xml"},
+  {key:"status_4a", url:"https://w05.international.gc.ca/projectbrowser-banqueprojets/iita-iati/dfatd-maecd_activit_status_4a.xml"},
+  {key:"status_4", url:"https://w05.international.gc.ca/projectbrowser-banqueprojets/iita-iati/dfatd-maecd_activit_status_4.xml"}
+];
+function officialFor(name) {
+  const n = (name||"").toLowerCase();
+  return OFFICIAL.find(o => n.indexOf(o.key) >= 0) || null;
+}
+function unloadFile(name) {
+  const rec = state.files.find(f => f.name === name);
+  if (!rec) return;
+  const ids = new Set(rec.ids || []);
+  if (ids.size) state.items = state.items.filter(a => !ids.has(a.id));
+  rec.ids = [];
+  rec.n = 0;
+  rec.fresh = "neutral";
+}
+function upsertFileMeta(name, extra) {
+  let rec = state.files.find(f => f.name === name);
+  if (!rec) {
+    rec = {name, n:0, ids:[], size:0, mtime:0, generated:"", fresh:"neutral", remoteSize:0, remoteLm:"", how:""};
+    state.files.push(rec);
+  }
+  Object.assign(rec, extra);
+  rec.fresh = extra.fresh || "neutral";
+  return rec;
+}
+function renderFileList() {
+  $("fileList").innerHTML = state.files.map(f => {
+    const cls = f.fresh==="ok"?"ok":f.fresh==="stale"?"stale":f.fresh==="err"?"err":"";
+    const tip = f.fresh==="ok"?"À jour":f.fresh==="stale"?"Mise à jour probable":f.fresh==="err"?"Vérif. impossible":"Non vérifié";
+    const sub = f.generated ? f.generated.slice(0,10) : (f.how||"");
+    return '<div class="file" title="'+esc(tip)+'"><i class="dot '+cls+'"></i><span>'+esc(f.name)+(sub?"<small>"+esc(sub)+"</small>":"")+'</span><span>'+f.n+'</span></div>';
+  }).join("");
+}
+
+const pendingMeta = new Map();
+function mergeIn(acts, name) {
+  unloadFile(name);
+  const meta = pendingMeta.get(name) || {};
+  const rec = upsertFileMeta(name, {size: meta.size||0, mtime: meta.mtime||0, generated: meta.generated||"", fresh:"neutral"});
+  rec.ids = acts.map(a => a.id);
+  rec.n = acts.length;
+  const map = new Map(state.items.map(x => [x.id, x]));
+  for (const a of acts) map.set(a.id, a);
+  state.items = Array.from(map.values());
+  renderFileList();
+}
+
+let parseQueue = 0, parsedFiles = 0, t0 = 0;
+function onWorker(ev) {
+  const m = ev.data;
+  if (m.type === "progress") {
+    setStatus("Analyse "+m.name+" — "+m.n+" activités");
+  } else if (m.type === "file") {
+    mergeIn(m.acts, m.name);
+    parsedFiles++;
+    setStatus(m.name+" : "+m.n+" activités");
+    if (parsedFiles >= parseQueue) {
+      state.parseMs = performance.now()-t0;
+      afterLoad();
+    }
+  }
+}
+
+async function afterLoad() {
+  setProg(1);
+  rebuildDiff();
+  if (state.snap && (state.diff.added.length + state.diff.removed.length + state.diff.modified.length)) {
+    state.diffMode = true;
+    state.favOnly = false;
+    state.diffShow = {added:true, removed:true, modified:true};
+  }
+  apply();
+  try { await savePack(); } catch(e) {}
+  setDbButton(state.items.length > 0);
+  const extra = state.snap
+    ? " · diff +"+state.diff.added.length+" / −"+state.diff.removed.length+" / ~"+state.diff.modified.length
+    : "";
+  setStatus(state.items.length+" projets uniques · parse "+Math.round(state.parseMs)+" ms · cache local enregistré"+extra);
+}
+
+function ficheHay(a) {
+  if (a.hayFull) return a.hayFull;
+  return ((a.hay||"")+" "+(a.desc&&a.desc.en||"")+" "+(a.desc&&a.desc.fr||"")+" "+(a.results||[]).map(r => (r.title&&(r.title.en||r.title.fr)||"")+" "+(r.text&&(r.text.en||r.text.fr)||"")).join(" ")+" "+(a.markers||[]).map(m=>m.code).join(" ")+" "+(a.related||[]).join(" ")).toLowerCase();
+}
+function parseQuery(raw) {
+  const out = {text:[], id:"", country:"", sector:"", partner:"", status:"", hum:""};
+  raw.trim().split(/\s+/).forEach(tok => {
+    const i = tok.indexOf(":");
+    if (i>0) {
+      const k = tok.slice(0,i).toLowerCase();
+      const v = tok.slice(i+1);
+      if (k==="id") out.id = v.toLowerCase();
+      else if (k==="pays"||k==="country") out.country = v.toLowerCase();
+      else if (k==="secteur"||k==="sector") out.sector = v.toLowerCase();
+      else if (k==="partenaire"||k==="partner") out.partner = v.toLowerCase();
+      else if (k==="statut"||k==="status") out.status = v;
+      else if (k==="hum") out.hum = v;
+      else out.text.push(tok.toLowerCase());
+    } else if (tok) out.text.push(tok.toLowerCase());
+  });
+  return out;
+}
+
+function apply() {
+  const stOn = new Set([...document.querySelectorAll("[data-st]")].filter(x=>x.checked).map(x=>+x.dataset.st));
+  const hum = $("hum").value;
+  const d0 = $("d0").value;
+  const d1 = $("d1").value;
+  const m0 = $("m0").value === "" ? -Infinity : +$("m0").value;
+  const m1 = $("m1").value === "" ? Infinity : +$("m1").value;
+  const cq = $("countryQ").value.trim().toLowerCase();
+  const sq = $("sectorQ").value.trim().toLowerCase();
+  const pq = $("partnerQ").value.trim().toLowerCase();
+  const q = parseQuery($("q").value);
+
+  let source = state.items;
+  if (state.diffMode && state.snap) {
+    const show = state.diffShow;
+    const any = show.added || show.removed || show.modified;
+    source = [];
+    if (!any || show.added) source.push(...state.diff.added);
+    if (!any || show.modified) source.push(...state.diff.modified);
+    if (!any || show.removed) source.push(...state.diff.removed);
+  }
+
+  const out = [];
+  for (const a of source) {
+    if (!stOn.has(a.status)) continue;
+    if (hum !== "" && String(a.hum) !== hum) continue;
+    if (d0 && a.start && a.start < d0) continue;
+    if (d1 && a.start && a.start > d1) continue;
+    if (a.commit < m0 || a.commit > m1) continue;
+    if (q.status && String(a.status) !== q.status) continue;
+    if (q.hum !== "" && q.hum && String(a.hum) !== q.hum) continue;
+    if (q.id && !a.id.toLowerCase().includes(q.id) && !a.short.toLowerCase().includes(q.id)) continue;
+    if (q.country && !a.countries.some(c => c.code.toLowerCase()===q.country || (COUNTRIES[c.code]||"").toLowerCase().includes(q.country))) continue;
+    if (q.sector && !a.sectors.some(s => s.code.toLowerCase().includes(q.sector) || (SECTORS[s.code]||"").toLowerCase().includes(q.sector))) continue;
+    if (q.partner && !(a.impl.name.en+" "+a.impl.name.fr+" "+a.impl.ref).toLowerCase().includes(q.partner)) continue;
+    if (cq) {
+      const hit = a.countries.some(c => c.code.toLowerCase()===cq || (COUNTRIES[c.code]||"").toLowerCase().includes(cq))
+        || a.regions.some(r => r.code.toLowerCase().includes(cq));
+      if (!hit) continue;
+    }
+    if (sq) {
+      const hit = a.sectors.some(s => s.code.toLowerCase().includes(sq) || (SECTORS[s.code]||"").toLowerCase().includes(sq));
+      if (!hit) continue;
+    }
+    if (pq && !(a.impl.name.en+" "+a.impl.name.fr+" "+a.impl.ref).toLowerCase().includes(pq)) continue;
+    if (state.favOnly && !state.favs.has(a.id)) continue;
+    if (q.text.length) {
+      const blob = state.deep ? ficheHay(a) : (a.hay || "");
+      let ok = true;
+      for (const tkn of q.text) if (!blob.includes(tkn)) { ok=false; break; }
+      if (!ok) continue;
+    }
+    out.push(a);
+  }
+  const {key, dir} = state.sort;
+  out.sort((a,b) => {
+    let va, vb;
+    if (key==="title") { va=t(a.title); vb=t(b.title); }
+    else if (key==="country") { va=a.countries[0]?a.countries[0].code:""; vb=b.countries[0]?b.countries[0].code:""; }
+    else if (key==="id") { va=a.short; vb=b.short; }
+    else { va=a[key]; vb=b[key]; }
+    if (va < vb) return -1*dir;
+    if (va > vb) return 1*dir;
+    return 0;
+  });
+  state.filtered = out;
+  state.sel = out.length ? Math.min(Math.max(state.sel,0), out.length-1) : -1;
+  kpis();
+  renderRows();
+  renderFacets();
+  updateStatusCounts();
+  if (state.sel>=0 && !state.simple) showDetail(out[state.sel]);
+  syncSortHeaders();
+}
+
+function kpis() {
+  let c=0,d=0;
+  for (const a of state.filtered) { c+=a.commit; d+=a.disb; }
+  $("kN").textContent = state.filtered.length.toLocaleString("fr-CA");
+  $("kC").textContent = money(c);
+  $("kD").textContent = money(d);
+}
+function updateStatusCounts() {
+  const n = {1:0,2:0,3:0,4:0,5:0,6:0};
+  for (const a of state.items) if (n[a.status] != null) n[a.status]++;
+  document.querySelectorAll("[data-stn]").forEach(el => {
+    const k = +el.dataset.stn;
+    el.textContent = "("+(n[k]||0).toLocaleString("fr-CA")+")";
+  });
+}
+
+function rowH() { return state.simple ? 90 : 34; }
+function fmtPct(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return "";
+  return x.toFixed(2) + "%";
+}
+function countriesLine(a) {
+  const parts = [];
+  (a.countries || []).forEach(c => {
+    parts.push(countryName(c.code) + " (" + c.code + ") " + fmtPct(c.pct));
+  });
+  if (!parts.length) {
+    (a.regions || []).forEach(r => {
+      parts.push((r.code || "région") + " " + fmtPct(r.pct));
+    });
+  }
+  return "Pays: " + (parts.join(" · ") || "—");
+}
+function syncSortHeaders() {
+  document.querySelectorAll("#cols span[data-k], #colsSimple span[data-k]").forEach(s => {
+    s.classList.toggle("active", s.dataset.k === state.sort.key);
+  });
+}
+function renderRows() {
+  const scroller = $("scroller");
+  if (!scroller) return;
+  const n = state.filtered.length;
+  const rh = rowH();
+  $("spacer").style.height = Math.max(n * rh, 1) + "px";
+  const head = 36;
+  const h = Math.max(scroller.clientHeight - head, 200);
+  const start = Math.max(0, Math.floor(Math.max(0, scroller.scrollTop) / rh) - 10);
+  const end = Math.min(n, start + Math.ceil(h / rh) + 24);
+  const rows = $("rows");
+  rows.style.transform = "translateY(" + (start * rh) + "px)";
+  let html = "";
+  for (let i=start; i<end; i++) {
+    const a = state.filtered[i];
+    const cc = (a.countries[0] && a.countries[0].code) || (a.regions[0] && a.regions[0].code) || "—";
+    const kind = state.diff.kind.get(a.id) || "";
+    const cls = 'row'+(i===state.sel?" on":"")+(isFav(a.id)?" fav":"")+(kind?" "+(kind==="added"?"add":kind==="removed"?"del":"mod"):"");
+    if (state.simple) {
+      html += '<div class="'+cls+'" data-i="'+i+'">'
+        + '<span class="id c-id">'+(a.hum?"✚ ":"")+esc(a.short)+' <span class="c-st st st-'+a.status+'">('+(STATUS[a.status]||a.status)+")</span></span>"
+        + '<span class="c-start">'+(a.start||"—")+"</span>"
+        + '<span class="c-commit">'+money(a.commit)+"</span>"
+        + '<div class="r2">'+esc(t(a.title))+"</div>"
+        + '<span class="c-disb">'+money(a.disb)+"</span>"
+        + '<div class="r3"><span class="meta">'+esc(countriesLine(a))+"</span></div></div>";
+    } else {
+      html += '<div class="'+cls+'" data-i="'+i+'">'
+        + "<span>"+(a.hum?"✚":"")+"</span>"
+        + '<span class="id">'+esc(a.short)+"</span>"
+        + '<span class="title">'+esc(t(a.title))+"</span>"
+        + "<span>"+esc(cc)+"</span>"
+        + '<span class="st st-'+a.status+'">'+(STATUS[a.status]||a.status)+"</span>"
+        + "<span>"+(a.start||"")+"</span>"
+        + '<span class="money">'+money(a.commit)+"</span>"
+        + '<span class="money">'+money(a.disb)+"</span>"
+        + "</div>";
+    }
+  }
+  rows.innerHTML = html;
+}
+function esc(s){return String(s||"").replace(/[&<>"']/g, function(c){if(c==="&")return "&"+"amp;";if(c==="<")return "&"+"lt;";if(c===">")return "&"+"gt;";if(c==='"')return "&"+"quot;";return "&"+"apos;";});}
+function hit(s) {
+  const raw = String(s||"");
+  const q = parseQuery($("q").value).text;
+  if (!state.deep || !q.length) return esc(raw);
+  let out = esc(raw);
+  q.forEach(tok => {
+    if (tok.length < 2) return;
+    const re = new RegExp("("+tok.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")", "gi");
+    out = out.replace(re, "<mark class=\"hit\">$1</mark>");
+  });
+  return out;
+}
+
+function facetList(list, keyFn, valFn) {
+  const map = new Map();
+  for (const a of list) {
+    const ks = keyFn(a);
+    for (const k of ks) {
+      if (!k) continue;
+      const rec = map.get(k) || {n:0, v:0};
+      rec.n++; rec.v += valFn(a);
+      map.set(k, rec);
+    }
+  }
+  return [...map.entries()].sort((a,b)=>b[1].v-a[1].v);
+}
+function renderFacetBox(el, rows, labelFn, clickFn) {
+  const max = rows[0] ? rows[0][1].v : 1;
+  el.innerHTML = rows.map(([k, rec]) => {
+    const w = Math.max(4, rec.v / max * 100);
+    return '<div class="barline" data-k="'+esc(k)+'"><span>'+esc(labelFn(k))+' <small style="color:var(--muted)">'+rec.n+"</small></span><i style=\"width:"+w+'%"></i><em>'+money(rec.v)+"</em></div>";
+  }).join("") || '<div class="hint">Aucune donnée.</div>';
+  el.querySelectorAll(".barline").forEach(n => n.onclick = () => clickFn(n.dataset.k));
+}
+function renderFacets() {
+  renderFacetBox($("cCountry"),
+    facetList(state.filtered, a => a.countries.length ? a.countries.map(c=>c.code) : ["—"], a=>a.commit),
+    k => k+" · "+(countryName(k)||""),
+    k => { $("countryQ").value = k==="—" ? "" : k; apply(); }
+  );
+  renderFacetBox($("cSector"),
+    facetList(state.filtered, a => a.sectors.filter(s=>s.vocab==="1"||!s.vocab).map(s=>s.code), a=>a.commit),
+    k => k+" · "+sectorName(k),
+    k => { $("sectorQ").value = k; apply(); }
+  );
+  renderFacetBox($("cPartner"),
+    facetList(state.filtered, a => [t(a.impl.name)||a.impl.ref||"Non codé"], a=>a.commit),
+    k => k,
+    k => { $("partnerQ").value = k; apply(); }
+  );
+}
+
+function showDetail(a) {
+  if (!a) return;
+  state.current = a;
+  const countries = a.countries.map(c => countryName(c.code)+" ("+c.code+") "+c.pct+"%").join(" · ") || a.regions.map(r=>r.code+" "+r.pct+"%").join(" · ") || "—";
+  const sectors = a.sectors.map(s => s.code+" "+sectorName(s.code)+" ("+s.pct+"%)").join("<br>") || "—";
+  const markers = a.markers.map(m => (MARKERS[m.code]||m.code)+" ["+(m.sig==="2"?"principal":m.sig==="1"?"significatif":m.sig)+"]").join(" · ") || "—";
+  const rel = a.related.map(r => '<button class="btn" data-rel="'+esc(r)+'">'+esc(r.replace("CA-3-",""))+"</button>").join(" ") || "—";
+  const txs = a.txs.slice().sort((x,y)=>x.date.localeCompare(y.date)).map(tx => {
+    const lab = tx.type==="2"?"Engagement":tx.type==="3"?"Décaissement":"Type "+tx.type;
+    return "<div>"+(tx.date||"")+" · "+lab+" · "+money(tx.value)+"</div>";
+  }).join("") || "—";
+  const results = a.results.map(r => "<p><b>"+hit(t(r.title))+"</b><br>"+hit(t(r.text))+"</p>").join("") || "<p class='hint'>Aucun résultat saisi.</p>";
+  const kind = state.diff.kind.get(a.id);
+  const prev = kind === "modified" ? state.snapMap.get(a.id) : null;
+  const kindLab = kind==="added"?"Ajouté vs gel":kind==="removed"?"Retiré vs gel":kind==="modified"?"Modifié vs gel":"";
+  let delta = "";
+  if (prev) {
+    const rows = [];
+    const pair = (lab, before, after) => {
+      if (String(before) === String(after)) return;
+      rows.push("<div class=\"delta\"><b>"+esc(lab)+" · </b><span class=\"was\">"+esc(before)+"</span><span class=\"now\">"+esc(after)+"</span></div>");
+    };
+    pair("Statut", STATUS[prev.status]||prev.status, STATUS[a.status]||a.status);
+    pair("Humanitaire", prev.hum?"oui":"non", a.hum?"oui":"non");
+    pair("Dates", (prev.start||"")+" → "+(prev.end||""), (a.start||"")+" → "+(a.end||""));
+    pair("Engagé", money(prev.commit), money(a.commit));
+    pair("Décaissé", money(prev.disb), money(a.disb));
+    pair("Titre", t(prev.title), t(a.title));
+    pair("Partenaire", t(prev.impl&&prev.impl.name)|| (prev.impl&&prev.impl.ref) || "", t(a.impl.name)||a.impl.ref||"");
+    pair("Maj IITA", prev.updated||"", a.updated||"");
+    if (rows.length) delta = "<h2>Écart vs gel</h2>"+rows.join("");
+  }
+  $("detailBody").innerHTML =
+    '<h3 style="margin:0 0 6px">'+hit(t(a.title))+"</h3>"
+    + '<div class="pills"><span class="pill">'+hit(a.id)+'</span><span class="pill st st-'+a.status+'">'+(STATUS[a.status]||a.status)+"</span>"
+    + (a.hum?'<span class="pill">Humanitaire</span>':"")
+    + (kindLab?'<span class="pill">'+kindLab+"</span>":"")+"</div>"
+    + delta
+    + '<dl class="dl">'
+    + "<dt>Partenaire</dt><dd>"+hit(t(a.impl.name))+' <span class="hint">'+hit(a.impl.ref)+"</span></dd>"
+    + "<dt>Dates</dt><dd>"+esc(a.start)+" → "+esc(a.end)+"</dd>"
+    + "<dt>Engagé</dt><dd>"+money(a.commit)+"</dd>"
+    + "<dt>Décaissé</dt><dd>"+money(a.disb)+"</dd>"
+    + "<dt>Pays</dt><dd>"+hit(countries)+"</dd>"
+    + "<dt>Marqueurs</dt><dd>"+hit(markers)+"</dd>"
+    + "<dt>Maj IITA</dt><dd>"+esc(a.updated)+"</dd>"
+    + "</dl>"
+    + "<h2>Secteurs</h2><p>"+hit(a.sectors.map(s => s.code+" "+sectorName(s.code)+" ("+s.pct+"%)").join(" · "))+"</p>"
+    + "<h2>Description</h2><p class=\"prose\">"+hit(t(a.desc))+"</p>"
+    + "<h2>Résultats</h2>"+results
+    + "<h2>Transactions</h2><div class=\"hint\">"+txs+"</div>"
+    + "<h2>Projets liés</h2><div class=\"pills\" id=\"rels\">"+rel+"</div>"
+    + '<p class="hint"><a class="amc-link" href="https://w05.international.gc.ca/projectbrowser-banqueprojets/project-projet/details/'+a.short+'" target="_blank" rel="noreferrer">Ouvrir la fiche AMC</a></p>';
+  $("detail").classList.add("open");
+  document.body.classList.toggle("fiche-open", !!(state.simple && $("detail").classList.contains("open")));
+  document.body.classList.toggle("fiche-full", !!(state.simple && state.ficheFull && $("detail").classList.contains("open")));
+  $("detailBody").querySelectorAll("[data-rel]").forEach(btn => {
+    btn.onclick = () => {
+      const id = btn.dataset.rel;
+      $("q").value = "id:"+id.replace(/^CA-3-/i,"");
+      apply();
+      const i = state.filtered.findIndex(x => x.id===id || x.short===id.replace(/^CA-3-/,""));
+      if (i>=0) { state.sel=i; showDetail(state.filtered[i]); renderRows(); }
+    };
+  });
+  syncFavUi();
+}
+
+function exportCsv() {
+  downloadCsv(state.filtered, "iati-amc-filtre.csv");
+}
+function exportFavCsv() {
+  const list = state.items.filter(a => state.favs.has(a.id));
+  if (!list.length) { setStatus("Aucun favori."); return; }
+  downloadCsv(list, "iati-amc-favoris.csv");
+}
+function downloadCsv(list, name) {
+  const rows = [["id","status","humanitarian","title_fr","title_en","partner","partner_ref","countries","sectors","start","end","commitment_cad","disbursed_cad"]];
+  for (const a of list) {
+    rows.push([
+      a.id, a.status, a.hum, a.title.fr, a.title.en, a.impl.name.fr||a.impl.name.en, a.impl.ref,
+      a.countries.map(c=>c.code+":"+c.pct).join("|"),
+      a.sectors.map(s=>s.code+":"+s.pct).join("|"),
+      a.start, a.end, a.commit, a.disb
+    ].map(v => '"'+String(v==null?"":v).replace(/"/g,'""')+'"'));
+  }
+  const blob = new Blob([rows.map(r=>r.join(",")).join("\n")], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+}
+
+function xmlEsc(s) {
+  return String(s||"").replace(/[&<>"']/g, function(c){
+    if (c==="&") return "&"+"amp;";
+    if (c==="<") return "&"+"lt;";
+    if (c===">") return "&"+"gt;";
+    if (c==='"') return "&"+"quot;";
+    return "&"+"apos;";
+  });
+}
+function narXml(obj) {
+  if (!obj) return "";
+  let out = "";
+  if (obj.en) out += '<narrative xml:lang="en">'+xmlEsc(obj.en)+"</narrative>";
+  if (obj.fr) out += '<narrative xml:lang="fr">'+xmlEsc(obj.fr)+"</narrative>";
+  return out;
+}
+function activityXml(a) {
+  let x = '<iati-activity last-updated-datetime="'+xmlEsc(a.updated||"")+'" default-currency="CAD" hierarchy="1" humanitarian="'+(a.hum?1:0)+'">';
+  x += "<iati-identifier>"+xmlEsc(a.id)+"</iati-identifier>";
+  x += '<reporting-org ref="CA-3" type="10"><narrative xml:lang="en">Foreign Affairs, Trade and Development Canada (DFATD)</narrative><narrative xml:lang="fr">Affaires étrangères, Commerce et Développement Canada (MAECD)</narrative></reporting-org>';
+  x += "<title>"+narXml(a.title)+"</title>";
+  x += '<description type="1">'+narXml(a.desc)+"</description>";
+  if (a.impl && (a.impl.ref || a.impl.name.en || a.impl.name.fr)) {
+    x += '<participating-org role="4" ref="'+xmlEsc(a.impl.ref)+'">'+narXml(a.impl.name)+"</participating-org>";
+  }
+  x += '<activity-status code="'+(a.status||2)+'" />';
+  if (a.start) x += '<activity-date type="2" iso-date="'+xmlEsc(a.start)+'" />';
+  if (a.end) x += '<activity-date type="3" iso-date="'+xmlEsc(a.end)+'" />';
+  (a.countries||[]).forEach(c => { x += '<recipient-country code="'+xmlEsc(c.code)+'" percentage="'+c.pct+'" />'; });
+  (a.regions||[]).forEach(r => { x += '<recipient-region code="'+xmlEsc(r.code)+'" percentage="'+r.pct+'" />'; });
+  (a.sectors||[]).forEach(s => { x += '<sector vocabulary="'+(s.vocab||"1")+'" code="'+xmlEsc(s.code)+'" percentage="'+s.pct+'" />'; });
+  (a.markers||[]).forEach(m => { x += '<policy-marker vocabulary="'+(m.vocab||"1")+'" code="'+xmlEsc(m.code)+'" significance="'+xmlEsc(m.sig||"")+'" />'; });
+  (a.txs||[]).forEach(tx => {
+    x += "<transaction><transaction-type code=\""+xmlEsc(tx.type)+"\" /><transaction-date iso-date=\""+xmlEsc(tx.date)+"\" /><value value-date=\""+xmlEsc(tx.date)+"\">"+tx.value+"</value></transaction>";
+  });
+  (a.related||[]).forEach(r => { x += '<related-activity type="3" ref="'+xmlEsc(r)+'" />'; });
+  (a.results||[]).forEach(r => {
+    x += '<result type="'+(r.type||"2")+'"><title>'+narXml(r.title)+"</title><description>"+narXml(r.text)+"</description></result>";
+  });
+  x += "</iati-activity>";
+  return x;
+}
+function exportXml(list, name) {
+  if (!list.length) { setStatus("Rien à exporter."); return; }
+  const body = list.map(activityXml).join("");
+  const xml = '<?xml version="1.0" encoding="UTF-8"?>\n<iati-activities version="2.03" generated-datetime="'+new Date().toISOString()+'">'+body+"</iati-activities>";
+  const blob = new Blob([xml], {type:"application/xml"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  setStatus(list.length+" activités exportées · "+name);
+}
+function copyFiche() {
+  const a = state.current;
+  if (!a) { setStatus("Aucune fiche ouverte."); return; }
+  const lines = [
+    t(a.title),
+    a.id,
+    "Statut: "+(STATUS[a.status]||a.status)+(a.hum?" · Humanitaire":""),
+    "Partenaire: "+(t(a.impl.name)||"")+" "+(a.impl.ref||""),
+    "Dates: "+(a.start||"")+" → "+(a.end||""),
+    "Engagé: "+money(a.commit),
+    "Décaissé: "+money(a.disb),
+    "Pays: "+(a.countries.map(c => countryName(c.code)+" ("+c.code+") "+c.pct+"%").join(" · ")||""),
+    "Secteurs: "+(a.sectors.map(s => s.code+" "+sectorName(s.code)+" ("+s.pct+"%)").join(" · ")||""),
+    "Marqueurs: "+(a.markers.map(m => (MARKERS[m.code]||m.code)).join(" · ")||""),
+    "",
+    t(a.desc),
+    "",
+    a.results.map(r => t(r.title)+": "+t(r.text)).join("\n"),
+    "",
+    "https://w05.international.gc.ca/projectbrowser-banqueprojets/project-projet/details/"+a.short
+  ];
+  const txt = lines.join("\n");
+  const done = () => { $("copyBtn").textContent = "Copié"; setTimeout(() => { $("copyBtn").textContent = "Copier"; }, 1200); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(txt).then(done).catch(() => fallbackCopy(txt, done));
+  } else fallbackCopy(txt, done);
+}
+function fallbackCopy(txt, done) {
+  const ta = document.createElement("textarea");
+  ta.value = txt; document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  ta.remove(); done();
+}
+
+async function ingestFiles(files) {
+  const xmls = [...files].filter(f => /\.xml$/i.test(f.name) || (f.type && f.type.indexOf("xml")>=0));
+  if (!xmls.length) { setStatus("Aucun XML."); return; }
+  if ($("file")) $("file").value = "";
+  const overlap = xmls.filter(f => state.files.some(x => x.name === f.name && (x.n || (x.ids && x.ids.length))));
+  if (overlap.length && state.items.length) {
+    const names = overlap.map(f => f.name).join(", ");
+    let choice;
+    if (state.snap) {
+      const when = new Date(state.snap.ts).toLocaleString("fr-CA");
+      choice = await askModal(
+        "Fichier déjà en mémoire",
+        esc(names)+" est déjà chargé. Gel actuel : "+when+" · "+state.snap.n+" projets. "+state.items.length+" projets en mémoire maintenant.",
+        [
+          {id:"keep", label:"Garder le gel et charger", cls:"primary"},
+          {id:"refreeze", label:"Remplacer le gel par la version actuelle, puis charger"},
+          {id:"none", label:"Charger sans gel"},
+          {id:"cancel", label:"Annuler"}
+        ]
+      );
+    } else {
+      choice = await askModal(
+        "Garder la version actuelle pour un DIFF ?",
+        esc(names)+" est déjà chargé. "+state.items.length+" projets en mémoire. Un gel permettra de voir les ajouts, retraits et modifications.",
+        [
+          {id:"refreeze", label:"Garder et charger", cls:"primary"},
+          {id:"none", label:"Charger sans garder"},
+          {id:"cancel", label:"Annuler"}
+        ]
+      );
+    }
+    if (choice === "cancel") { setStatus("Chargement annulé."); return; }
+    if (choice === "refreeze") {
+      setSnap(state.items);
+      try { await saveSnap(); } catch(e) {}
+      setStatus("Version gelée · "+state.snap.n+" projets.");
+    }
+    if (choice === "none") {
+      clearSnapMem();
+      try { await saveSnap(); } catch(e) {}
+    }
+  }
+  parseQueue = xmls.length; parsedFiles = 0; t0 = performance.now();
+  setStatus("Lecture de "+xmls.length+" fichier(s)…");
+  closeSheets();
+  for (const f of xmls) {
+    const buf = await f.arrayBuffer();
+    const head = new TextDecoder("utf-8").decode(buf.slice(0, 1600));
+    const gd = /generated-datetime="([^"]+)"/.exec(head);
+    pendingMeta.set(f.name, {size: f.size||0, mtime: f.lastModified||0, generated: gd ? gd[1] : ""});
+    unloadFile(f.name);
+    renderFileList();
+    worker.postMessage({name:f.name, buffer:buf}, [buf]);
+  }
+}
+
+async function headOfficial(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    let res = await fetch(url, {method:"HEAD", mode:"cors", cache:"no-store", signal:ctrl.signal});
+    if (!res.ok || !(res.headers.get("content-length") || res.headers.get("last-modified"))) {
+      res = await fetch(url, {method:"GET", mode:"cors", cache:"no-store", headers:{"Range":"bytes=0-0"}, signal:ctrl.signal});
+    }
+    const cr = res.headers.get("content-range") || "";
+    const crSize = /\/(\d+)\s*$/.exec(cr);
+    const size = +(res.headers.get("content-length") || 0) || (crSize ? +crSize[1] : 0);
+    return {
+      ok: res.ok || res.status === 206,
+      size,
+      lm: res.headers.get("last-modified") || ""
+    };
+  } finally { clearTimeout(t); }
+}
+
+function ymd(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return y+"-"+m+"-"+day;
+}
+function lastBusinessDay(now) {
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const h = now.getHours();
+  if (d.getDay() === 6) d.setDate(d.getDate()-1);
+  else if (d.getDay() === 0) d.setDate(d.getDate()-2);
+  else if (d.getDay() === 1 && h < 16) d.setDate(d.getDate()-3);
+  else if (h < 16) d.setDate(d.getDate()-1);
+  while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate()-1);
+  return ymd(d);
+}
+function generatedDay(s) {
+  if (!s) return "";
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(s);
+  return m ? m[1] : "";
+}
+function markByCalendar(f) {
+  const day = generatedDay(f.generated);
+  if (!day) {
+    f.fresh = "err";
+    f.how = "Recharge le XML pour lire generated-datetime";
+    return "err";
+  }
+  const expected = lastBusinessDay(new Date());
+  f.how = "généré "+day+" · attendu ≥ "+expected;
+  if (day >= expected) { f.fresh = "ok"; return "ok"; }
+  f.fresh = "stale";
+  return "stale";
+}
+
+async function verifyOnline() {
+  if (!state.files.length) { setStatus("Aucun fichier chargé à vérifier."); return; }
+  setStatus("Vérification…");
+  let stale = 0, ok = 0, err = 0, mode = "calendrier";
+  let remoteOk = false;
+  for (const f of state.files) {
+    const src = officialFor(f.name);
+    if (src) {
+      try {
+        const remote = await headOfficial(src.url);
+        if (remote.ok && (remote.size || remote.lm)) {
+          remoteOk = true;
+          f.remoteSize = remote.size;
+          f.remoteLm = remote.lm;
+          const remoteMs = remote.lm ? Date.parse(remote.lm) : 0;
+          const sizeDiff = remote.size && f.size && remote.size !== f.size;
+          const newer = remoteMs && f.mtime && remoteMs > f.mtime + 2000;
+          if (sizeDiff || newer) { f.fresh = "stale"; f.how = "serveur plus récent"; stale++; }
+          else { f.fresh = "ok"; f.how = "identiques au serveur"; ok++; }
+          continue;
+        }
+      } catch (e) {}
+    }
+    const r = markByCalendar(f);
+    if (r==="ok") ok++; else if (r==="stale") stale++; else err++;
+  }
+  if (remoteOk) mode = "serveur AMC";
+  renderFileList();
+  setStatus("Vérif. ("+mode+") : "+ok+" à jour · "+stale+" à mettre à jour"+(err?" · "+err+" sans date IITA":""));
+}
+
+const SIMPLE_KEY = "iati-amc-simple-v1";
+const SIMPLE_LOCK = "iati-amc-simple-lock-v1";
+const MOVABLES = ["langBtn","favToggle","diffToggle","exportBtn","exportXmlBtn","fileBlock","filterBlock","clearBtn"];
+const homes = new Map();
+function rememberHomes() {
+  MOVABLES.forEach(id => {
+    const el = $(id);
+    if (el) homes.set(id, {parent: el.parentNode, next: el.nextSibling});
+  });
+}
+function restoreHomes() {
+  for (let i = MOVABLES.length - 1; i >= 0; i--) {
+    const id = MOVABLES[i];
+    const el = $(id);
+    const h = homes.get(id);
+    if (!el || !h || !h.parent) continue;
+    if (h.next && h.next.parentNode === h.parent) h.parent.insertBefore(el, h.next);
+    else h.parent.appendChild(el);
+  }
+}
+function park(el, dest) {
+  if (el && dest && el.parentElement !== dest) dest.appendChild(el);
+}
+function detectSimple() {
+  try {
+    if (localStorage.getItem(SIMPLE_LOCK) === "1") {
+      return localStorage.getItem(SIMPLE_KEY) === "1";
+    }
+  } catch (e) {}
+  const coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  const narrow = window.innerWidth <= 860;
+  const touch = ("ontouchstart" in window) || (navigator.maxTouchPoints > 0);
+  return narrow || (coarse && window.innerWidth <= 1024) || (touch && window.innerWidth <= 900);
+}
+function closeSheets() {
+  ["sheetSearch","sheetFile"].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.classList.remove("open");
+    el.setAttribute("aria-hidden", "true");
+  });
+}
+function setFicheFull(on) {
+  state.ficheFull = !!on;
+  $("detail").classList.toggle("full", state.ficheFull);
+  document.body.classList.toggle("fiche-full", !!(state.simple && state.ficheFull && $("detail").classList.contains("open")));
+  const btn = $("expandDetail");
+  if (btn) {
+    btn.classList.toggle("on", state.ficheFull);
+    btn.textContent = state.ficheFull ? "▾" : "▴";
+    btn.title = state.ficheFull ? "Réduire la fiche" : "Plein écran";
+  }
+}
+function closeDetail() {
+  $("detail").classList.remove("open");
+  document.body.classList.remove("fiche-open");
+  document.body.classList.remove("fiche-full");
+  setFicheFull(false);
+}
+function distTouches(a, b) {
+  const dx = a.clientX - b.clientX, dy = a.clientY - b.clientY;
+  return Math.hypot(dx, dy);
+}
+function wirePinch() {
+  const el = $("detail");
+  if (!el) return;
+  let pinching = false, start = 0, last = 0;
+  const onStart = e => {
+    if (!state.simple || !el.classList.contains("open") || e.touches.length !== 2) return;
+    pinching = true;
+    start = last = distTouches(e.touches[0], e.touches[1]);
+  };
+  const onMove = e => {
+    if (!pinching || e.touches.length !== 2) return;
+    e.preventDefault();
+    last = distTouches(e.touches[0], e.touches[1]);
+  };
+  const onEnd = () => {
+    if (!pinching) return;
+    const ratio = start ? last / start : 1;
+    if (ratio > 1.16) setFicheFull(true);
+    else if (ratio < 0.86) setFicheFull(false);
+    pinching = false;
+  };
+  el.addEventListener("touchstart", onStart, {passive:true});
+  el.addEventListener("touchmove", onMove, {passive:false});
+  el.addEventListener("touchend", onEnd);
+  el.addEventListener("touchcancel", onEnd);
+  el.addEventListener("gesturestart", e => {
+    if (state.simple && el.classList.contains("open")) e.preventDefault();
+  }, {passive:false});
+  el.addEventListener("gestureend", e => {
+    if (!state.simple || !el.classList.contains("open")) return;
+    e.preventDefault();
+    if (e.scale > 1.12) setFicheFull(true);
+    else if (e.scale < 0.9) setFicheFull(false);
+  });
+}
+function openSheet(id) {
+  closeSheets();
+  const el = $(id);
+  if (!el) return;
+  el.classList.add("open");
+  el.setAttribute("aria-hidden", "false");
+}
+function setSimple(on, persist) {
+  state.simple = !!on;
+  document.body.classList.toggle("simple", state.simple);
+  $("simpleBtn").classList.toggle("on", state.simple);
+  $("simpleBtn").title = state.simple ? "Passer en mode bureau" : "Passer en mode simplifié (téléphone)";
+  $("deepBtn").textContent = state.simple ? "ÉTENDRE" : "E";
+  if (persist) {
+    try {
+      localStorage.setItem(SIMPLE_LOCK, "1");
+      localStorage.setItem(SIMPLE_KEY, state.simple ? "1" : "0");
+    } catch (e) {}
+  }
+  if (state.simple) {
+    park($("langBtn"), $("sheetSearchBody"));
+    park($("favToggle"), $("sheetSearchBody"));
+    park($("filterBlock"), $("sheetSearchBody"));
+    park($("fileBlock"), $("sheetFileBody"));
+    park($("diffToggle"), $("sheetFileBody"));
+    park($("exportBtn"), $("sheetFileBody"));
+    park($("exportXmlBtn"), $("sheetFileBody"));
+    park($("clearBtn"), $("sheetFileBody"));
+    document.body.classList.toggle("fiche-open", $("detail").classList.contains("open"));
+    document.body.classList.toggle("fiche-full", !!(state.ficheFull && $("detail").classList.contains("open")));
+  } else {
+    closeSheets();
+    restoreHomes();
+    document.body.classList.remove("fiche-open");
+    document.body.classList.remove("fiche-full");
+    $("detail").classList.remove("full");
+  }
+  syncSortHeaders();
+  renderRows();
+}
+function initSimple() {
+  rememberHomes();
+  setSimple(detectSimple());
+}
+function onSortClick(e) {
+  if (e.target.closest(".grip")) return;
+  const cell = e.target.closest("[data-k]");
+  const k = cell && cell.dataset.k;
+  if (!k) return;
+  if (state.sort.key===k) state.sort.dir *= -1;
+  else { state.sort.key=k; state.sort.dir = (k==="title"||k==="id"||k==="country"||k==="start")?1:-1; }
+  apply();
+}
+
+function wireSplits() {
+  const root = document.documentElement;
+  function drag(el, apply) {
+    el.addEventListener("mousedown", e => {
+      e.preventDefault();
+      el.classList.add("hot");
+      const x0 = e.clientX, y0 = e.clientY;
+      const aside0 = parseFloat(getComputedStyle(root).getPropertyValue("--aside")) || 280;
+      const detail0 = parseFloat(getComputedStyle(root).getPropertyValue("--detail")) || 400;
+      const charts0 = $("charts").getBoundingClientRect().height;
+      const move = ev => apply(ev, {x0, y0, aside0, detail0, charts0});
+      const up = () => { el.classList.remove("hot"); window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    });
+  }
+  drag($("splitL"), (ev, s) => {
+    root.style.setProperty("--aside", Math.max(200, Math.min(480, s.aside0 + (ev.clientX - s.x0)))+"px");
+    renderRows();
+  });
+  drag($("splitR"), (ev, s) => {
+    root.style.setProperty("--detail", Math.max(280, Math.min(720, s.detail0 - (ev.clientX - s.x0)))+"px");
+    renderRows();
+  });
+  drag($("splitH"), (ev, s) => {
+    const h = Math.max(120, Math.min(document.querySelector("main").clientHeight - 80, s.charts0 - (ev.clientY - s.y0)));
+    root.style.setProperty("--charts", h+"px");
+    renderRows();
+  });
+  $("cols").addEventListener("mousedown", e => {
+    const g = e.target.closest(".grip"); if (!g) return;
+    e.preventDefault(); e.stopPropagation();
+    g.classList.add("hot");
+    const col = g.dataset.col;
+    const cell = g.parentElement;
+    const startX = e.clientX;
+    const startW = cell.getBoundingClientRect().width;
+    const move = ev => {
+      const w = Math.max(48, Math.round(startW + (ev.clientX - startX)));
+      root.style.setProperty("--c"+col, w+"px");
+    };
+    const up = () => {
+      g.classList.remove("hot");
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  });
+}
+function wire() {
+  bootWorker();
+  loadFavs();
+  syncFavUi();
+  initSimple();
+  $("simpleBtn").onclick = () => setSimple(!state.simple, true);
+  $("searchMenuBtn").onclick = () => openSheet("sheetSearch");
+  $("fileMenuBtn").onclick = () => openSheet("sheetFile");
+  $("closeSearch").onclick = closeSheets;
+  $("closeFile").onclick = closeSheets;
+  $("closeDetail").onclick = closeDetail;
+  $("expandDetail").onclick = () => setFicheFull(!state.ficheFull);
+  wirePinch();
+  $("sheetSearch").addEventListener("click", e => { if (e.target === $("sheetSearch")) closeSheets(); });
+  $("sheetFile").addEventListener("click", e => { if (e.target === $("sheetFile")) closeSheets(); });
+  $("pickBtn").onclick = () => $("file").click();
+  $("dlOfficialBtn").onclick = () => window.open(OFFICIAL_PAGE, "_blank", "noopener");
+  $("checkBtn").onclick = verifyOnline;
+  $("file").onchange = () => ingestFiles($("file").files);
+  const drop = $("drop");
+  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("hot"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("hot"));
+  drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("hot"); ingestFiles(e.dataTransfer.files); });
+  let timer;
+  const bump = () => { clearTimeout(timer); timer=setTimeout(apply, 40); };
+  ["q","hum","d0","d1","m0","m1","countryQ","sectorQ","partnerQ"].forEach(id => $(id).addEventListener("input", bump));
+  document.querySelectorAll("[data-st]").forEach(x => x.addEventListener("change", apply));
+  $("resetBtn").onclick = () => {
+    $("q").value=""; $("hum").value=""; $("d0").value=""; $("d1").value=""; $("m0").value=""; $("m1").value="";
+    $("countryQ").value=""; $("sectorQ").value=""; $("partnerQ").value="";
+    state.favOnly = false; state.diffMode = false; syncFavUi(); syncDiffUi();
+    document.querySelectorAll("[data-st]").forEach(x => x.checked = true);
+    apply();
+  };
+  $("clearBtn").onclick = async () => {
+    if (!state.items.length && !state.snap) return;
+    state.items=[]; state.filtered=[]; state.files=[]; state.current=null; state.sel=-1;
+    state.favOnly=false; state.diffMode=false;
+    $("fileList").innerHTML="";
+    $("q").value=""; $("hum").value=""; $("d0").value=""; $("d1").value=""; $("m0").value=""; $("m1").value="";
+    $("countryQ").value=""; $("sectorQ").value=""; $("partnerQ").value="";
+    document.querySelectorAll("[data-st]").forEach(x => x.checked = true);
+    $("detailBody").innerHTML = "Charge les XML, puis clique une ligne.";
+    $("detailBody").className = "hint";
+    $("detail").classList.remove("open");
+    document.body.classList.remove("fiche-open");
+    clearSnapMem();
+    await clearPack();
+    setDbButton(false);
+    syncFavUi();
+    syncDiffUi();
+    apply();
+    setStatus("Cache vidé.");
+  };
+  $("exportBtn").onclick = exportCsv;
+  $("exportXmlBtn").onclick = () => exportXml(state.filtered, "iati-amc-filtre.xml");
+  $("langBtn").onclick = () => { state.lang = state.lang==="fr"?"en":"fr"; apply(); };
+  $("clearQ").onclick = () => { $("q").value=""; apply(); $("q").focus(); };
+  $("deepBtn").onclick = () => {
+    state.deep = !state.deep;
+    $("deepBtn").classList.toggle("on", state.deep);
+    apply();
+  };
+  wireSplits();
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => renderRows()).observe($("scroller"));
+  } else {
+    window.addEventListener("resize", () => renderRows());
+  }
+  $("favToggle").onclick = () => { state.favOnly = !state.favOnly; if (state.favOnly) state.diffMode = false; syncFavUi(); syncDiffUi(); apply(); };
+  $("diffToggle").onclick = () => {
+    if (!state.snap) { setStatus("Aucun gel. Recharge un XML déjà en mémoire et accepte de garder la version actuelle."); return; }
+    state.diffMode = !state.diffMode;
+    if (state.diffMode) {
+      state.favOnly = false;
+      state.diffShow = {added:true, removed:true, modified:true};
+    }
+    syncFavUi(); syncDiffUi(); apply();
+  };
+  $("favBtn").onclick = () => { if (state.current) toggleFav(state.current.id); };
+  $("copyBtn").onclick = copyFiche;
+  $("cols").addEventListener("click", onSortClick);
+  $("colsSimple").addEventListener("click", onSortClick);
+  $("scroller").addEventListener("scroll", () => renderRows(), {passive:true});
+  $("rows").addEventListener("click", e => {
+    const row = e.target.closest(".row"); if(!row) return;
+    state.sel = +row.dataset.i;
+    showDetail(state.filtered[state.sel]);
+    renderRows();
+  });
+  window.addEventListener("keydown", e => {
+    if (e.key==="/" && document.activeElement!==$("q")) {
+      e.preventDefault();
+      $("q").focus(); $("q").select();
+    }
+    if (e.key==="Escape") {
+      if ($("sheetSearch").classList.contains("open") || $("sheetFile").classList.contains("open")) {
+        closeSheets(); return;
+      }
+      if (state.simple && $("detail").classList.contains("open")) return;
+      $("q").value=""; $("q").blur(); $("detail").classList.remove("open"); document.body.classList.remove("fiche-open"); apply();
+    }
+    if (document.activeElement && ["INPUT","SELECT","TEXTAREA"].includes(document.activeElement.tagName)) return;
+    if (e.key==="f" || e.key==="F") { e.preventDefault(); if (state.current) toggleFav(state.current.id); }
+    if (e.key==="c" || e.key==="C") { e.preventDefault(); copyFiche(); }
+    if (e.key==="j" || e.key==="ArrowDown") { state.sel=Math.min(state.filtered.length-1, state.sel+1); showDetail(state.filtered[state.sel]); renderRows(); $("scroller").scrollTop = Math.max($("scroller").scrollTop, state.sel*rowH()-100); }
+    if (e.key==="k" || e.key==="ArrowUp") { state.sel=Math.max(0, state.sel-1); showDetail(state.filtered[state.sel]); renderRows(); $("scroller").scrollTop = Math.min($("scroller").scrollTop, state.sel*rowH()); }
+  });
+  loadPack().then(pack => {
+    if (pack && pack.items && pack.items.length) {
+      state.items = pack.items;
+      state.files = (pack.files||[]).map(f => Object.assign({fresh:"neutral", ids:f.ids||[]}, f, {fresh:"neutral"}));
+      renderFileList();
+      setDbButton(true);
+      loadSnap().then(snap => {
+        if (snap && snap.items && snap.items.length) {
+          state.snap = snap;
+          state.snapMap = new Map(snap.items.map(a => [a.id, a]));
+          rebuildDiff();
+        }
+        apply();
+        const extra = state.snap ? " · gel "+state.snap.n+" projets" : "";
+        setStatus("Session locale restaurée — "+pack.items.length+" projets"+extra+". Ajoute un XML pour mettre à jour.");
+      }).catch(() => {
+        apply();
+        setStatus("Session locale restaurée — "+pack.items.length+" projets. Ajoute un XML pour mettre à jour.");
+      });
+    } else {
+      setDbButton(false);
+      syncDiffUi();
+    }
+  }).catch(()=> setDbButton(false));
+  syncDiffUi();
+}
+wire();
+</script>
+</body>
+</html>
