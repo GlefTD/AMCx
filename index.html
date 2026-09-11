@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
-<title>IATI AMCx — explorateur local (v0.1.4)</title>
+<title>IATI AMCx — explorateur local (v0.1.5)</title>
 <style>
 :root {
   --bg: #0b1014;
@@ -241,10 +241,10 @@ body.simple header .grow { display: none !important; }
 body.simple #app { grid-template-rows: auto 1fr 28px; }
 body.simple header {
   display: grid;
-  grid-template-columns: auto auto 1fr auto auto;
+  grid-template-columns: auto 1fr auto auto;
   grid-template-areas:
-    "s title kpis filt file"
-    "search search search search search";
+    "s kpis filt file"
+    "search search search search";
   align-items: center;
   padding: 6px 10px 8px;
   gap: 6px 8px;
@@ -252,7 +252,7 @@ body.simple header {
   min-height: 0;
 }
 body.simple #simpleBtn { grid-area: s; }
-body.simple header h1 { grid-area: title; font-size: 12px; max-width: none; }
+body.simple header h1 { display: none !important; }
 body.simple header h1 .ver { display: none; }
 body.simple .kpis {
   grid-area: kpis;
@@ -281,7 +281,7 @@ body.simple #center { grid-template-rows: 1fr; }
 body.simple #cols { display: none; }
 body.simple #colsSimple {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 76px 118px;
+  grid-template-columns: minmax(0, 1fr) 76px 92px;
   height: 36px;
   font-size: 10px;
   letter-spacing: .04em;
@@ -294,13 +294,14 @@ body.simple #colsSimple span[data-k="commit"] { justify-content: flex-end; text-
 body.simple #scroller { height: 100%; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 body.simple .row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 76px 118px;
+  grid-template-columns: minmax(0, 1fr) 76px 92px;
   grid-template-rows: auto auto auto;
   align-items: center;
   height: 90px;
   padding: 7px 8px;
   gap: 1px 0;
-  touch-action: manipulation;
+  touch-action: pan-y;
+  transition: transform .12s ease-out;
 }
 body.simple .row .c-id { grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 body.simple .row .c-st { font-size: 11px; font-weight: 600; }
@@ -326,8 +327,8 @@ body.simple .detail {
   left: 0; right: 0; bottom: 28px; top: auto;
   z-index: 28;
   width: 100% !important;
-  height: min(62vh, 560px);
-  max-height: calc(100vh - 120px);
+  height: 50vh;
+  max-height: 50vh;
   border: 0;
   border-top: 1px solid var(--line);
   border-radius: 12px 12px 0 0;
@@ -335,6 +336,14 @@ body.simple .detail {
   box-shadow: 0 -10px 28px rgba(0,0,0,.4);
   padding-bottom: max(10px, env(safe-area-inset-bottom));
   touch-action: pan-y;
+  transition: transform .18s ease-out;
+}
+body.simple .detail-head h2 {
+  padding: 10px 16px 10px 4px;
+  margin: 0;
+  touch-action: none;
+  user-select: none;
+  letter-spacing: .14em;
 }
 body.simple #detailBody { -webkit-overflow-scrolling: touch; touch-action: pan-y; }
 body.simple .detail.open { display: flex; }
@@ -346,7 +355,7 @@ body.simple .detail.full {
   border-radius: 0;
   z-index: 32;
 }
-body.simple.fiche-open:not(.fiche-full) #scroller { padding-bottom: min(62vh, 560px); }
+body.simple.fiche-open:not(.fiche-full) #scroller { padding-bottom: 50vh; }
 body.simple.fiche-full #scroller { padding-bottom: 0; }
 body.simple footer .keys { display: none; }
 body.simple #prog { width: 80px; }
@@ -362,7 +371,7 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
 .simple-cols { display: none; }
 @media (max-width: 820px) {
   header h1 { max-width: 42vw; overflow: hidden; text-overflow: ellipsis; }
-  body.simple header h1 { max-width: 28vw; }
+  body.simple header h1 { display: none !important; }
   .sheet { align-items: flex-end; }
   .sheet .panel {
     width: 100%; max-height: 88%;
@@ -377,7 +386,7 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
 <div id="app">
   <header>
     <button class="btn iconbtn" id="simpleBtn" title="Mode simplifié (téléphone)">S</button>
-    <h1>IATI <span>AMCx</span> local <em class="ver">(v0.1.4)</em></h1>
+    <h1>IATI <span>AMCx</span> local <em class="ver">(v0.1.5)</em></h1>
     <div class="searchwrap" id="searchwrap">
       <input class="search" id="q" placeholder="Recherche : texte, id:P009528, pays:PS, secteur:72010, partenaire:WFP, statut:3, hum:1" spellcheck="false">
       <button type="button" id="clearQ" title="Effacer la recherche">×</button>
@@ -481,7 +490,7 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
       <div class="cols simple-cols" id="colsSimple">
         <span data-k="id">Identifiant</span>
         <span data-k="start">Début</span>
-        <span data-k="commit">DÉPENSES ENGAGÉES</span>
+        <span data-k="commit">Dépenses</span>
       </div>
       <div id="spacer"><div id="rows"></div></div>
       </div>
@@ -495,7 +504,7 @@ body.simple .sheet .panel { padding-bottom: env(safe-area-inset-bottom); }
     <div class="split d" id="splitR" title="Redimensionner"></div>
     <section class="detail pad" id="detail">
       <div class="detail-head">
-        <h2>Fiche</h2>
+        <h2 id="ficheHandle" title="Glisser : haut plein écran · bas fermer">Fiche</h2>
         <div class="detail-tools">
           <button class="btn" id="copyBtn" title="Copier la fiche">Copier</button>
           <button class="btn" id="favBtn" title="Ajouter aux favoris">Favori</button>
@@ -688,7 +697,7 @@ self.onmessage = (e) => {
 </script>
 
 <script>
-const VERSION = "0.1.4";
+const VERSION = "0.1.5";
 const COUNTRIES = {AF:"Afghanistan",AL:"Albanie",DZ:"Algérie",AO:"Angola",AR:"Argentine",AM:"Arménie",AZ:"Azerbaïdjan",BD:"Bangladesh",BY:"Bélarus",BJ:"Bénin",BT:"Bhoutan",BO:"Bolivie",BA:"Bosnie",BW:"Botswana",BR:"Brésil",BF:"Burkina Faso",BI:"Burundi",KH:"Cambodge",CM:"Cameroun",CV:"Cabo Verde",CF:"RCA",TD:"Tchad",CN:"Chine",CO:"Colombie",KM:"Comores",CD:"RDC",CG:"Congo",CR:"Costa Rica",CI:"Côte d'Ivoire",CU:"Cuba",DJ:"Djibouti",DO:"Rép. dominicaine",EC:"Équateur",EG:"Égypte",SV:"Salvador",ER:"Érythrée",SZ:"Eswatini",ET:"Éthiopie",FJ:"Fidji",GA:"Gabon",GM:"Gambie",GE:"Géorgie",GH:"Ghana",GT:"Guatemala",GN:"Guinée",GW:"Guinée-Bissau",GY:"Guyana",HT:"Haïti",HN:"Honduras",IN:"Inde",ID:"Indonésie",IQ:"Irak",IR:"Iran",JM:"Jamaïque",JO:"Jordanie",KZ:"Kazakhstan",KE:"Kenya",XK:"Kosovo",KG:"Kirghizistan",LA:"Laos",LB:"Liban",LS:"Lesotho",LR:"Liberia",LY:"Libye",MG:"Madagascar",MW:"Malawi",MY:"Malaisie",ML:"Mali",MR:"Mauritanie",MU:"Maurice",MX:"Mexique",MD:"Moldavie",MN:"Mongolie",ME:"Monténégro",MA:"Maroc",MZ:"Mozambique",MM:"Myanmar",NA:"Namibie",NP:"Népal",NI:"Nicaragua",NE:"Niger",NG:"Nigeria",MK:"Macédoine du N.",PK:"Pakistan",PS:"Palestine",PA:"Panama",PG:"Papouasie",PY:"Paraguay",PE:"Pérou",PH:"Philippines",RW:"Rwanda",WS:"Samoa",SN:"Sénégal",RS:"Serbie",SL:"Sierra Leone",SB:"Salomon",SO:"Somalie",ZA:"Afrique du Sud",SS:"Soudan du Sud",LK:"Sri Lanka",SD:"Soudan",SR:"Suriname",SY:"Syrie",TJ:"Tadjikistan",TZ:"Tanzanie",TH:"Thaïlande",TL:"Timor-Leste",TG:"Togo",TN:"Tunisie",TR:"Türkiye",TM:"Turkménistan",UG:"Ouganda",UA:"Ukraine",UZ:"Ouzbékistan",VU:"Vanuatu",VE:"Venezuela",VN:"Viêt Nam",YE:"Yémen",ZM:"Zambie",ZW:"Zimbabwe"};
 const SECTORS = {
 "11110":"Politique éducative","11120":"Installations éducatives","11130":"Formation enseignants","11182":"Recherche éducation",
@@ -1762,45 +1771,173 @@ function setFicheFull(on) {
   }
 }
 function closeDetail() {
-  $("detail").classList.remove("open");
+  const el = $("detail");
+  el.style.transform = "";
+  el.classList.remove("open");
   document.body.classList.remove("fiche-open");
   document.body.classList.remove("fiche-full");
   setFicheFull(false);
+}
+function openProject(i, full) {
+  if (i < 0 || i >= state.filtered.length) return false;
+  state.sel = i;
+  showDetail(state.filtered[i]);
+  if (full) setFicheFull(true);
+  else if (!full && full === false) setFicheFull(false);
+  renderRows();
+  return true;
 }
 function distTouches(a, b) {
   const dx = a.clientX - b.clientX, dy = a.clientY - b.clientY;
   return Math.hypot(dx, dy);
 }
-function wirePinch() {
-  const el = $("detail");
-  if (!el) return;
-  let pinching = false, start = 0, last = 0;
-  const onStart = e => {
-    if (!state.simple || !el.classList.contains("open") || e.touches.length !== 2) return;
-    pinching = true;
-    start = last = distTouches(e.touches[0], e.touches[1]);
+function wireSimpleGestures() {
+  const detail = $("detail");
+  const handle = $("ficheHandle");
+  const rows = $("rows");
+  if (!detail || !rows) return;
+  let suppressClick = false;
+
+  function track(el, opts) {
+    let sx = 0, sy = 0, x = 0, y = 0, active = false, locked = "";
+    el.addEventListener("touchstart", e => {
+      if (!state.simple || e.touches.length !== 1) return;
+      if (opts.needOpen && !detail.classList.contains("open")) return;
+      if (opts.ignoreBtn && e.target.closest("button, a, input, select")) return;
+      const t = e.touches[0];
+      sx = x = t.clientX; sy = y = t.clientY;
+      active = true; locked = "";
+    }, {passive:true});
+    el.addEventListener("touchmove", e => {
+      if (!active || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      x = t.clientX; y = t.clientY;
+      const dx = x - sx, dy = y - sy;
+      if (!locked && (Math.abs(dx) > 12 || Math.abs(dy) > 12)) {
+        locked = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      }
+      if (locked === "x" && opts.onX) {
+        e.preventDefault();
+        opts.onX(dx, dy);
+      } else if (locked === "y" && opts.onY) {
+        e.preventDefault();
+        opts.onY(dx, dy);
+      }
+    }, {passive:false});
+    const end = () => {
+      if (!active) return;
+      const dx = x - sx, dy = y - sy;
+      active = false;
+      const axis = locked;
+      locked = "";
+      if (opts.onEnd) opts.onEnd(dx, dy, axis);
+    };
+    el.addEventListener("touchend", end);
+    el.addEventListener("touchcancel", end);
+  }
+
+  track(handle || detail.querySelector(".detail-head"), {
+    needOpen: true,
+    onY: (dx, dy) => { detail.style.transition = "none"; detail.style.transform = "translateY(" + Math.max(-40, dy) + "px)"; },
+    onEnd: (dx, dy, axis) => {
+      detail.style.transition = "";
+      detail.style.transform = "";
+      if (axis !== "y") return;
+      if (dy < -56) setFicheFull(true);
+      else if (dy > 56) closeDetail();
+    }
+  });
+
+  track(detail, {
+    needOpen: true,
+    ignoreBtn: true,
+    onX: (dx) => {
+      if (dx > 0) return;
+      detail.style.transition = "none";
+      detail.style.transform = "translateX(" + dx + "px)";
+    },
+    onEnd: (dx, dy, axis) => {
+      detail.style.transition = "";
+      detail.style.transform = "";
+      if (axis === "x" && dx < -72) closeDetail();
+    }
+  });
+
+  let rsx = 0, rsy = 0, rax = "", rrow = null, rlive = false;
+  rows.addEventListener("touchstart", e => {
+    if (!state.simple || e.touches.length !== 1) return;
+    const row = e.target.closest(".row");
+    if (!row) return;
+    rrow = row;
+    rsx = e.touches[0].clientX;
+    rsy = e.touches[0].clientY;
+    rax = "";
+    rlive = true;
+  }, {passive:true});
+  rows.addEventListener("touchmove", e => {
+    if (!rlive || !rrow || e.touches.length !== 1) return;
+    const dx = e.touches[0].clientX - rsx;
+    const dy = e.touches[0].clientY - rsy;
+    if (!rax && (Math.abs(dx) > 12 || Math.abs(dy) > 12)) rax = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (rax === "x") {
+      e.preventDefault();
+      rrow.style.transition = "none";
+      rrow.style.transform = "translateX(" + dx + "px)";
+    }
+  }, {passive:false});
+  const rowEnd = () => {
+    if (!rlive) return;
+    const row = rrow;
+    const dx = (window._lastDx || 0);
+    rlive = false;
+    if (row) {
+      const t = row.style.transform;
+      const m = /translateX\((-?\d+(?:\.\d+)?)px\)/.exec(t);
+      const ddx = m ? parseFloat(m[1]) : 0;
+      row.style.transition = "";
+      row.style.transform = "";
+      if (rax === "x" && ddx > 72) {
+        suppressClick = true;
+        openProject(+row.dataset.i, true);
+      } else if (rax === "x" && ddx < -72) {
+        suppressClick = true;
+        if (detail.classList.contains("open")) closeDetail();
+      }
+    }
+    rrow = null; rax = "";
   };
-  const onMove = e => {
+  rows.addEventListener("touchend", rowEnd);
+  rows.addEventListener("touchcancel", rowEnd);
+
+  rows.addEventListener("click", e => {
+    if (suppressClick) { e.preventDefault(); e.stopPropagation(); suppressClick = false; }
+  }, true);
+
+  let pinching = false, p0 = 0, p1 = 0;
+  detail.addEventListener("touchstart", e => {
+    if (!state.simple || !detail.classList.contains("open") || e.touches.length !== 2) return;
+    pinching = true;
+    p0 = p1 = distTouches(e.touches[0], e.touches[1]);
+  }, {passive:true});
+  detail.addEventListener("touchmove", e => {
     if (!pinching || e.touches.length !== 2) return;
     e.preventDefault();
-    last = distTouches(e.touches[0], e.touches[1]);
-  };
-  const onEnd = () => {
+    p1 = distTouches(e.touches[0], e.touches[1]);
+  }, {passive:false});
+  const pinchEnd = () => {
     if (!pinching) return;
-    const ratio = start ? last / start : 1;
+    const ratio = p0 ? p1 / p0 : 1;
     if (ratio > 1.16) setFicheFull(true);
     else if (ratio < 0.86) setFicheFull(false);
     pinching = false;
   };
-  el.addEventListener("touchstart", onStart, {passive:true});
-  el.addEventListener("touchmove", onMove, {passive:false});
-  el.addEventListener("touchend", onEnd);
-  el.addEventListener("touchcancel", onEnd);
-  el.addEventListener("gesturestart", e => {
-    if (state.simple && el.classList.contains("open")) e.preventDefault();
+  detail.addEventListener("touchend", pinchEnd);
+  detail.addEventListener("touchcancel", pinchEnd);
+  detail.addEventListener("gesturestart", e => {
+    if (state.simple && detail.classList.contains("open")) e.preventDefault();
   }, {passive:false});
-  el.addEventListener("gestureend", e => {
-    if (!state.simple || !el.classList.contains("open")) return;
+  detail.addEventListener("gestureend", e => {
+    if (!state.simple || !detail.classList.contains("open")) return;
     e.preventDefault();
     if (e.scale > 1.12) setFicheFull(true);
     else if (e.scale < 0.9) setFicheFull(false);
@@ -1923,7 +2060,7 @@ function wire() {
   $("closeFile").onclick = closeSheets;
   $("closeDetail").onclick = closeDetail;
   $("expandDetail").onclick = () => setFicheFull(!state.ficheFull);
-  wirePinch();
+  wireSimpleGestures();
   $("sheetSearch").addEventListener("click", e => { if (e.target === $("sheetSearch")) closeSheets(); });
   $("sheetFile").addEventListener("click", e => { if (e.target === $("sheetFile")) closeSheets(); });
   $("pickBtn").onclick = () => $("file").click();
