@@ -1,5 +1,6 @@
 # Gros datasets
-datasets/
+datasets
+datasets/**
 *.xml
 
 # Fichiers de config / source à ne pas servir
