@@ -102,6 +102,16 @@ Pas de cadre, pas de bundler. `wrangler.jsonc` publie le statique. `.assetsignor
 - IndexedDB peut refuser le pack sur iPhone (quota) : le prochain chargement retélécharge
 - Le parse regex IITA couvre le jeu AMC ; ce n’est pas un validateur IATI générique
 
-## Licence et usage
+## Licence
 
-Projet personnel / communautaire. Les données restent la propriété et la responsabilité d’Affaires mondiales Canada. Réutiliser le code librement ; citer la source officielle si vous republiez des extraits de projets.
+Deux régimes :
+
+- **Code** (`index.html` et le reste du dépôt hors données) : [MIT](LICENSE)
+- **Données IITA** (`datasets/`, `data/`, exports générés) : [Licence du gouvernement ouvert — Canada](https://ouvert.canada.ca/fr/licence-du-gouvernement-ouvert-canada), source Affaires mondiales Canada
+
+AMCx n’est **pas** un produit officiel d’Affaires mondiales Canada, d’IATI ou du gouvernement du Canada. Aucune affiliation ni approbation.
+
+Le logiciel et les vues calculées sont fournis **tels quels**, sans garantie d’exactitude ni d’actualité. En cas d’écart, la [fiche AMC](https://w05.international.gc.ca/projectbrowser-banqueprojets/) et le XML IITA officiel font foi.
+
+Détail : [`NOTICE.md`](NOTICE.md).
+
